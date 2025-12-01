@@ -21,7 +21,8 @@
         :root {
             --primary-color: #3949ab;
             --primary-dark: #1a237e;
-            --secondary-color: #ffa726;
+            --primary-light: #7986cb;
+            --secondary-color: #f68c4e;
             --background-color: #f4f4f4;
             --card-background: #ffffff;
             --text-color: #333333;
@@ -30,7 +31,6 @@
             --warning-color: #fb8c00;
             --info-color: #2196F3;
             --danger-color: #f44336;
-            --primary-color-light: #7986cb;
             --success-color-light: #66bb6a;
             --warning-color-light: #ffb74d;
             --info-color-light: #64b5f6;
@@ -130,8 +130,8 @@
         }
 
         .dark-mode .settings-tab-btn.active {
-            color: var(--primary-color-light);
-            border-bottom-color: var(--primary-color-light);
+            color: var(--primary-light);
+            border-bottom-color: var(--primary-light);
         }
 
         .settings-section {
@@ -237,7 +237,7 @@
         .modern-course-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-            border-color: var(--primary-color-light);
+            border-color: var(--primary-light);
         }
 
         .card-color-strip {
@@ -655,7 +655,7 @@
 
         .dark-mode .action-chip:hover {
             background: #333;
-            border-color: var(--primary-color-light);
+            border-color: var(--primary-light);
         }
 
         .dark-mode .action-chip.has-items {
@@ -846,7 +846,7 @@
         }
 
         .dark-mode .course-card:hover {
-            border-color: var(--primary-color-light);
+            border-color: var(--primary-light);
         }
 
         .dark-mode .course-card-admins {
@@ -1160,7 +1160,7 @@
         }
 
         .app-header {
-            background: linear-gradient(135deg, #3949ab, #1a237e);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
             color: white;
             padding: 30px;
             border-radius: 20px;
@@ -1312,7 +1312,7 @@
 
         /* Use a lighter neutral grey for icons in dark mode */
         .dark-mode .actions-cell .btn-icon i {
-            color: var(--primary-color-light);
+            color: var(--primary-light);
         }
 
         /* Add the background highlight for dark mode hover */
@@ -1720,7 +1720,7 @@
         }
 
         .module-header {
-            background-color: #3949ab;
+            background-color: var(--primary-color);
             color: white;
             padding-top: 10px;
             padding-bottom: 10px;
@@ -1910,7 +1910,7 @@
         }
 
         button:hover {
-            border-color: var(--primary-color-light);
+            border-color: var(--primary-light);
             /* Glowing border effect */
             background-color: var(--primary-color);
             /* Keep background color the same */
@@ -3450,12 +3450,12 @@
 
         .dark-mode .reason-card:hover:not(.active) {
             background-color: #333;
-            border-color: var(--primary-color-light);
-            color: var(--primary-color-light);
+            border-color: var(--primary-light);
+            color: var(--primary-light);
         }
 
         .dark-mode .reason-card:hover:not(.active) i {
-            color: var(--primary-color-light);
+            color: var(--primary-light);
         }
 
         .dark-mode .reason-card.active {
@@ -3760,8 +3760,8 @@
 
         .dark-mode .toggle-button:hover:not(.active) {
             background-color: #333 !important;
-            border-color: var(--primary-color-light);
-            color: var(--primary-color-light);
+            border-color: var(--primary-light);
+            color: var(--primary-light);
         }
 
         .dark-mode .toggle-button.active {
