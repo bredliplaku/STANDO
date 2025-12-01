@@ -6155,7 +6155,7 @@
  * Generates Session Toggle Buttons.
  * @param {string} prefix - ID prefix.
  * @param {boolean} includeInherit - Show "Same as previous".
- * @param {boolean} isCompact - NEW: Reduces padding/size for dialogs.
+ * @param {boolean} isCompact - Reduces padding/size for dialogs.
  */
         function renderSessionControls(courseName) {
             const controls = document.getElementById('session-controls');
@@ -6226,7 +6226,7 @@
  * Generates Session Toggle Buttons.
  * @param {string} prefix - ID prefix.
  * @param {boolean} includeInherit - Show "Same as previous".
- * @param {boolean} isCompact - NEW: Reduces padding/size for dialogs.
+ * @param {boolean} isCompact - Reduces padding/size for dialogs.
  */
         function renderSessionSelectorHTML(prefix, includeInherit = false, isCompact = false) {
             if (!currentCourse || !courseInfoMap[currentCourse]) return '';
@@ -6689,7 +6689,7 @@
                         else if (req.status === 'Rejected') statusBadge = `<span style="color:var(--danger-color); font-weight:bold; font-size:0.85em; background:#ffebee; padding:2px 8px; border-radius:10px;">Rejected</span>`;
                         else statusBadge = `<span style="color:var(--warning-color); font-weight:bold; font-size:0.85em; background:#fff3e0; padding:2px 8px; border-radius:10px;">Pending</span>`;
 
-                        // --- NEW: Session Badge ---
+                        // --- Session Badge ---
                         let sessionBadge = '';
                         if (req.session && req.session !== 'Default') {
                             sessionBadge = `<span style="background:#e3f2fd; color:var(--primary-color); font-weight:700; font-size:0.75em; padding:1px 6px; border-radius:4px; text-transform:uppercase; margin-left:6px;">${escapeHtml(req.session)}</span>`;

@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         EIS Attendance Sheet Generator
 // @namespace    https://swimmingbrain.dev/
-// @version      1.3
+// @version      1.5
 // @description  Generates attendance sheet that perfectly matches the original template with customizable fields
 // @author       swimmingbrain
 // @match        https://eis.epoka.edu.al/courseattendance/*/editcl
 // @match        https://eis.epoka.edu.al/courseattendance/*/newcl
-// @updateURL    https://raw.githubusercontent.com/bredliplaku/bredliplaku.github.io/refs/heads/main/attendance/form_generator.user.js
-// @downloadURL  https://raw.githubusercontent.com/bredliplaku/bredliplaku.github.io/refs/heads/main/attendance/form_generator.user.js
+// @updateURL    https://github.com/bredliplaku/STANDO/raw/refs/heads/main/extensions/form_generator.user.js
+// @downloadURL  https://github.com/bredliplaku/STANDO/raw/refs/heads/main/extensions/form_generator.user.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
