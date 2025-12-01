@@ -581,6 +581,28 @@
             animation: fadeOutAndSlide 0.5s ease-out forwards;
         }
 
+        @keyframes floatOnWater {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+
+            /* Moves up slightly */
+            100% {
+                transform: translateY(0);
+            }
+
+            /* Comes back down */
+        }
+
+        .floating-logo {
+            /* 4s = speed (slow), ease-in-out = smooth turning points */
+            animation: floatOnWater 4s ease-in-out infinite;
+        }
+
 
         @keyframes fadeOutAndSlide {
             0% {
@@ -5713,6 +5735,10 @@
             </div>
         </div>
         <footer class="footer">
+            <img src="https://raw.githubusercontent.com/bredliplaku/STANDO/refs/heads/main/miscellaneous/swimmingbrain.png"
+                alt="Swimming Brain Logo" class="floating-logo"
+                style="width: 80px; margin-top: 10px; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">
+
             <div class="social-links">
                 <a href="https://swimmingbrain.dev/" target="_blank" rel="noopener noreferrer"><i
                         class="fa-solid fa-house-chimney-user"></i></a>
