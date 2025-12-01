@@ -15236,7 +15236,16 @@ ${uidContent}
                         timeTag.className = 'time-tag';
                         if (log.manual === true || log.manual === 'true') {
                             timeTag.classList.add('manual', 'excused');
-                            // ... keep your existing click listener for excused tags here ...
+
+                            // Add click listener with 'warning' style and specific name
+                            timeTag.addEventListener('click', (e) => {
+                                e.stopPropagation(); // Stop the row from opening edit mode
+                                showNotification(
+                                    'warning',
+                                    'Justified Absence',
+                                    `${escapeHtml(group.name)} was justified for this absence.`
+                                );
+                            });
                         }
 
                         const timeObj = new Date(log.timestamp);
