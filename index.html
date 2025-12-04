@@ -10842,6 +10842,112 @@ ${uidContent}
         }
 
         /**
+ * Shows a dialog with full details of a permission request.
+ * Used by both the Pending list and History list.
+ */
+        function showPermissionDetailsDialog(data, isReadOnly = false) {
+            document.body.style.overflow = 'hidden';
+
+            const dialogBackdrop = document.createElement('div');
+            dialogBackdrop.className = 'dialog-backdrop';
+            const dialog = document.createElement('div');
+            dialog.className = 'dialog';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+
+            let attachmentHtml = '<span style="opacity:0.5; font-style:italic;">No attachment</span>';
+            if (data.attachmentUrl) {
+                attachmentHtml = `<a href="${data.attachmentUrl}" target="_blank" class="btn-attachment"><i class="fa-solid fa-paperclip"></i> View Document</a>`;
+            }
+
+            // Determine Action Buttons based on context
+            let actionsHtml = '';
+            if (isReadOnly) {
+                actionsHtml = `<button id="close-details-btn" class="btn-blue"><i class="fa-solid fa-xmark"></i> Close</button>`;
+            } else {
+                actionsHtml = `
+            <button id="close-details-btn" class="btn-blue" style="margin-right:auto;"><i class="fa-solid fa-xmark"></i> Close</button>
+            <button id="reject-req-btn" class="btn-red"><i class="fa-solid fa-ban"></i> Reject</button>
+            <button id="approve-req-btn" class="btn-green"><i class="fa-solid fa-check"></i> Approve</button>
+        `;
+            }
+
+            // Handle session badge if present
+            let sessionHtml = '';
+            if (data.session && data.session !== 'Default') {
+                sessionHtml = `<span style="background:#e3f2fd; color:var(--primary-color); font-weight:700; font-size:0.8em; padding:2px 8px; border-radius:4px; margin-left:10px;">${escapeHtml(data.session)}</span>`;
+            }
+
+            dialog.innerHTML = `
+        <h3 class="dialog-title"><i class="fa-solid fa-circle-info"></i> Request Details</h3>
+        <div class="dialog-content">
+            <div class="form-group" style="align-items: flex-start;">
+                <label class="dialog-label-fixed"><i class="fa-solid fa-user"></i> Student</label>
+                <div class="form-control" style="background:#f9f9f9; border:none;">
+                    <strong>${escapeHtml(data.studentName)}</strong><br>
+                    <small style="opacity:0.7">${escapeHtml(data.studentEmail)}</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="dialog-label-fixed"><i class="fa-solid fa-book"></i> Course</label>
+                <div class="form-control" style="background:#f9f9f9; border:none; display:flex; align-items:center;">
+                    ${escapeHtml(data.course ? data.course.replace(/_/g, ' ') : 'N/A')}
+                    ${sessionHtml}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="dialog-label-fixed"><i class="fa-regular fa-clock"></i> Date/Time</label>
+                <input class="form-control" value="${escapeHtml(data.absenceDate)} (${escapeHtml(data.hours)})" disabled>
+            </div>
+
+            <div class="form-group">
+                <label class="dialog-label-fixed"><i class="fa-solid fa-tag"></i> Reason</label>
+                <input class="form-control" value="${escapeHtml(data.reasonType)}" disabled>
+            </div>
+
+            <div class="form-group" style="align-items:flex-start;">
+                <label class="dialog-label-fixed" style="margin-top:10px;"><i class="fa-solid fa-align-left"></i> Description</label>
+                <textarea class="form-control" rows="3" disabled>${escapeHtml(data.description || 'No description provided.')}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="dialog-label-fixed"><i class="fa-solid fa-paperclip"></i> Proof</label>
+                <div style="flex-grow:1;">${attachmentHtml}</div>
+            </div>
+        </div>
+        <div class="dialog-actions">
+            ${actionsHtml}
+        </div>
+    `;
+
+            dialogBackdrop.appendChild(dialog);
+            document.body.appendChild(dialogBackdrop);
+
+            const closeDialog = () => {
+                if (document.body.contains(dialogBackdrop)) {
+                    document.body.removeChild(dialogBackdrop);
+                }
+                document.body.style.overflow = '';
+            };
+
+            document.getElementById('close-details-btn').addEventListener('click', closeDialog);
+
+            if (!isReadOnly) {
+                document.getElementById('approve-req-btn').addEventListener('click', () => {
+                    closeDialog();
+                    showApproveAbsenceDialog(data);
+                });
+
+                document.getElementById('reject-req-btn').addEventListener('click', () => {
+                    closeDialog();
+                    showRejectAbsenceDialog(data);
+                });
+            }
+        }
+
+        /**
          * Attaches click listeners to the approve/reject/delete absence buttons.
          */
         function attachAbsenceActionListeners() {
