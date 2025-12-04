@@ -6215,77 +6215,6 @@
  * @param {boolean} includeInherit - Show "Same as previous".
  * @param {boolean} isCompact - Reduces padding/size for dialogs.
  */
-        function renderSessionControls(courseName) {
-            const controls = document.getElementById('session-controls');
-
-            // Hide immediately if not admin
-            if (!isAdmin) {
-                if (controls) controls.style.display = 'none';
-                return;
-            }
-
-            const catGroup = document.getElementById('session-category-group');
-
-            // Safety check
-            if (!courseInfoMap || !courseInfoMap[courseName]) {
-                controls.style.display = 'none';
-                return;
-            }
-
-            const rawSections = courseInfoMap[courseName].availableSections || '';
-            currentCourseSections = parseAvailableSections(rawSections);
-            const categories = Object.keys(currentCourseSections);
-
-            if (categories.length === 0) {
-                controls.style.display = 'none';
-                activeSessionCategory = null;
-                activeSessionGroup = null;
-                return;
-            }
-
-            // 1. Auto-select Category Logic
-            if (!activeSessionCategory || !categories.includes(activeSessionCategory)) {
-                activeSessionCategory = categories[0];
-                activeSessionGroup = null; // Reset group
-            }
-
-            // 2. Render Categories
-            catGroup.innerHTML = '';
-            const icons = { 'theory': 'fa-book', 'lab': 'fa-desktop', 'practice': 'fa-pen-to-square' };
-
-            categories.forEach(cat => {
-                const lowerCat = cat.toLowerCase();
-                const iconClass = icons[lowerCat] || 'fa-tag';
-
-                const btn = document.createElement('div');
-                btn.className = 'course-button';
-                btn.innerHTML = `<i class="fa-solid ${iconClass}"></i>&nbsp; ${cat}`;
-
-                btn.onclick = () => selectSessionCategory(cat);
-
-                if (activeSessionCategory === cat) btn.classList.add('active');
-                catGroup.appendChild(btn);
-            });
-
-            // 3. Render Groups for the active category
-            renderGroupsForCategory(activeSessionCategory);
-
-            // 4. SMART VISIBILITY CHECK
-            const showCategories = categories.length > 1;
-            catGroup.style.display = showCategories ? 'flex' : 'none';
-
-            const grpContainer = document.getElementById('session-group-container');
-            const showGroups = grpContainer.style.display !== 'none';
-
-            controls.style.display = (showCategories || showGroups) ? 'flex' : 'none';
-        }
-
-        /**
- * Generates Session Toggle Buttons.
- * @param {string} prefix - ID prefix.
- * @param {boolean} includeInherit - Show "Same as previous".
- * @param {boolean} isCompact - Reduces padding/size for dialogs.
- */
         function renderSessionSelectorHTML(prefix, includeInherit = false, isCompact = false) {
             if (!currentCourse || !courseInfoMap[currentCourse]) return '';
 
@@ -6351,98 +6280,6 @@
         </div>
         ${groupRowsHtml}
     </div>`;
-        }
-
-        /**
-         * Attaches event listeners to the generated Session Selector.
-         * @param {string} containerIdPrefix - The prefix used in renderSessionSelectorHTML.
-         * @param {Object} sectionsMap - The parsed sections object.
-         */
-        function setupSessionToggleListeners(containerIdPrefix, sectionsMap) {
-            const wrapper = document.getElementById(`${containerIdPrefix}-session-wrapper`);
-            if (!wrapper) return;
-
-            const input = document.getElementById(`${containerIdPrefix}-selected-session`);
-            const inheritBtn = document.getElementById(`${containerIdPrefix}-btn-inherit`);
-            const catRow = document.getElementById(`${containerIdPrefix}-cat-row`);
-            const groupRows = wrapper.querySelectorAll('.group-row');
-
-            const updateValue = () => {
-                if (inheritBtn && inheritBtn.classList.contains('active')) {
-                    input.value = 'INHERIT';
-                    return;
-                }
-
-                const activeCat = catRow.querySelector('.course-button.active');
-                if (!activeCat) {
-                    input.value = '';
-                    return;
-                }
-
-                const catVal = activeCat.dataset.val;
-                const activeGroupRow = document.getElementById(`${containerIdPrefix}-groups-${catVal}`);
-                let groupVal = '';
-
-                if (activeGroupRow) {
-                    const activeGrp = activeGroupRow.querySelector('.course-button.active');
-                    if (activeGrp) groupVal = activeGrp.dataset.val;
-                }
-
-                // Construct session string (e.g., "Theory A" or just "Theory")
-                input.value = groupVal ? `${catVal} ${groupVal}` : catVal;
-            };
-
-            // 1. Inherit Click
-            if (inheritBtn) {
-                inheritBtn.addEventListener('click', () => {
-                    inheritBtn.classList.add('active');
-                    // Deactivate all categories
-                    catRow.querySelectorAll('.course-button').forEach(b => b.classList.remove('active'));
-                    // Hide all groups
-                    groupRows.forEach(r => r.style.display = 'none');
-                    updateValue();
-                });
-            }
-
-            // 2. Category Click
-            catRow.addEventListener('click', (e) => {
-                const btn = e.target.closest('.course-button');
-                if (!btn) return;
-
-                // Activate Category
-                if (inheritBtn) inheritBtn.classList.remove('active');
-                catRow.querySelectorAll('.course-button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                const catVal = btn.dataset.val;
-
-                // Show relevant Group Row, hide others
-                groupRows.forEach(row => {
-                    if (row.id === `${containerIdPrefix}-groups-${catVal}`) {
-                        row.style.display = 'flex';
-                        // Auto-select first group if none active
-                        if (!row.querySelector('.course-button.active')) {
-                            const first = row.querySelector('.course-button');
-                            if (first) first.classList.add('active');
-                        }
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-                updateValue();
-            });
-
-            // 3. Group Click
-            groupRows.forEach(row => {
-                row.addEventListener('click', (e) => {
-                    const btn = e.target.closest('.course-button');
-                    if (!btn) return;
-
-                    row.querySelectorAll('.course-button').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    updateValue();
-                });
-            });
         }
 
         /**
@@ -7777,30 +7614,6 @@
                 uid: uid,
                 email: email,
                 role: role
-            });
-        };
-
-        window.deleteStaffKey = (rowIndex, name) => {
-            showConfirmationDialog({
-                title: "Revoke Access?",
-                message: `Are you sure you want to revoke key for <strong>${name}</strong>? They will no longer be able to log in via NFC.`,
-                confirmText: "Revoke",
-                isDestructive: true,
-                onConfirm: () => {
-                    callWebApp('manageStaff_Admin', { actionType: 'delete', rowIndex }, 'POST')
-                        .then(() => {
-                            // We must refresh the dialog data. 
-                            // Simplest way: close and reopen.
-                            document.querySelector('.dialog-backdrop').remove();
-                            showGlobalSettingsDialog();
-                            // We use a small timeout to let the dialog render before switching tabs
-                            setTimeout(() => {
-                                const tab = document.querySelector('.settings-tab-btn[data-target="sect-staff"]');
-                                if (tab) tab.click();
-                            }, 100);
-                        })
-                        .catch(err => showNotification('error', 'Error', err.message));
-                }
             });
         };
 
@@ -11839,7 +11652,6 @@ ${uidContent}
         /**
          * Handle auth button click to sign in.
          */
-        // Replace your handleAuthClick function with this updated version
         function handleAuthClick(e) {
             sessionStorage.setItem('redirect_hash', window.location.hash);
             if (e) e.preventDefault();
