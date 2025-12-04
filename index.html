@@ -11376,8 +11376,8 @@ ${uidContent}
 <div class="dialog-content">
 
     <div class="dialog-disclaimer">
-        <i class="fa-solid fa-circle-info"></i> Per university regulations, absences are unexcused by default. 
-        However, it is normal to miss a few classes. This form is a professional courtesy, primarily to help those with low attendance.
+        <i class="fa-solid fa-circle-info"></i> University regulations state absences are unexcused. It is normal to miss a few classes. 
+        Requests are <strong>only</strong> considered for the categories below; other reasons will not be justified.
     </div>
     
     <div class="form-section-title" style="margin-top:0;">Details</div>
@@ -11421,45 +11421,27 @@ ${uidContent}
     <div id="reason-grid" class="reason-grid">
         <div class="reason-card" data-value="Medical">
             <i class="fa-solid fa-bed"></i>
-            <div style="display:flex; flex-direction:column; line-height:1.1;">
-                <span>Calling Sick</span>
-                <span style="font-size:0.8em; opacity:0.6; font-weight:400;">Health Issues</span>
-            </div>
+            <span>Calling Sick</span>
         </div>
         <div class="reason-card" data-value="Conference">
             <i class="fa-solid fa-person-chalkboard"></i>
-            <div style="display:flex; flex-direction:column; line-height:1.1;">
-                <span>Academic Event</span>
-                <span style="font-size:0.8em; opacity:0.6; font-weight:400;">Conferences</span>
-            </div>
+            <span>Academic Event</span>
         </div>
         <div class="reason-card" data-value="Official">
             <i class="fa-solid fa-person-military-pointing"></i>
-            <div style="display:flex; flex-direction:column; line-height:1.1;">
-                <span>Official Appt</span>
-                <span style="font-size:0.8em; opacity:0.6; font-weight:400;">Legal / Govt</span>
-            </div>
+            <span>Official Appt</span>
         </div>
         <div class="reason-card" data-value="Bus">
             <i class="fa-solid fa-bus"></i>
-            <div style="display:flex; flex-direction:column; line-height:1.1;">
-                <span>Bus Issue</span>
-                <span style="font-size:0.8em; opacity:0.6; font-weight:400;">Uni Transport</span>
-            </div>
+            <span>Bus Issue</span>
         </div>
         <div class="reason-card" data-value="Club">
             <i class="fa-solid fa-people-robbery"></i>
-            <div style="display:flex; flex-direction:column; line-height:1.1;">
-                <span>Student Event</span>
-                <span style="font-size:0.8em; opacity:0.6; font-weight:400;">Clubs / Activ.</span>
-            </div>
+            <span>Student Event</span>
         </div>
         <div class="reason-card" data-value="Confidential">
             <i class="fa-solid fa-user-tie"></i>
-            <div style="display:flex; flex-direction:column; line-height:1.1;">
-                <span>Personal</span>
-                <span style="font-size:0.8em; opacity:0.6; font-weight:400;">Private Matter</span>
-            </div>
+            <span>Personal Matter</span>
         </div>
     </div>
     
@@ -11629,7 +11611,7 @@ ${uidContent}
                 submitBtn.disabled = false;
                 explInput.value = '';
                 explInput.removeAttribute('minlength');
-                explInput.placeholder = ""; // Clear placeholder
+                explInput.placeholder = "";
 
                 // Reset Labels
                 fileLabel.innerHTML = 'Document';
@@ -11680,7 +11662,7 @@ ${uidContent}
                         break;
 
                     case 'Club':
-                        submitBtn.disabled = true; // Still disabled as Dean must email
+                        submitBtn.disabled = true; // Disabled - Dean must email
                         helpText.style.background = '#fff3e0';
                         helpText.style.color = '#ef6c00';
                         helpText.style.borderLeftColor = '#ff9800';
@@ -11689,12 +11671,15 @@ ${uidContent}
                         break;
 
                     case 'Confidential': // Personal Matter
-                        // Enabled, Required Explanation
+                        // Enabled, REQUIRED Explanation
                         submitBtn.disabled = false;
 
                         explGroup.style.display = 'flex';
                         explLabel.innerHTML = 'Explanation <span style="color:red">*</span>';
-                        explInput.placeholder = "Please briefly explain the situation...";
+                        explInput.placeholder = "Please explain the situation in detail...";
+
+                        // Set min length for validation later
+                        explInput.setAttribute('minlength', '50');
 
                         helpText.style.background = '#fff3e0';
                         helpText.style.color = '#ef6c00';
@@ -11735,6 +11720,7 @@ ${uidContent}
 
                 if (selectedReason === 'Confidential') {
                     if (!explanation) errors.push("Explanation is required for personal matters.");
+                    else if (explanation.length < 50) errors.push("Please provide more detail for personal matters (at least 50 characters).");
                 }
 
                 if (errors.length > 0) {
