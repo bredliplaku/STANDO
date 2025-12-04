@@ -9836,6 +9836,28 @@ ${uidContent}
 
             document.body.addEventListener('click', unlockAudio);
             document.body.addEventListener('touchstart', unlockAudio);
+            // This prevents the phone from sleeping and killing the sync process
+            if ('wakeLock' in navigator) {
+                let wakeLock = null;
+                const requestWakeLock = async () => {
+                    try {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                        console.log('Screen Wake Lock active');
+                    } catch (err) {
+                        console.warn(`Wake Lock failed: ${err.name}, ${err.message}`);
+                    }
+                };
+
+                // Request immediately
+                requestWakeLock();
+
+                // Re-request if the user minimizes and returns
+                document.addEventListener('visibilitychange', async () => {
+                    if (wakeLock !== null && document.visibilityState === 'visible') {
+                        requestWakeLock();
+                    }
+                });
+            }
         }
 
 
@@ -10106,6 +10128,25 @@ ${uidContent}
                         console.error('Error during background data load:', backgroundError);
                     }
                 })();
+
+                // --- PHASE 4: SESSION AUTO-DESTRUCT (KIOSK ONLY) ---
+                // Only run this timer if we are in Kiosk mode (token starts with "KIOSK_")
+                const storedTokenStr = localStorage.getItem('gapi_token');
+                const isKioskMode = storedTokenStr && storedTokenStr.includes('KIOSK_');
+
+                if (isKioskMode) {
+                    // Set this to MATCH your Backend.js SESSION_DURATION (in milliseconds)
+                    // e.g. 10800 * 1000 for 3 hours
+                    const SESSION_TIMEOUT_MS = 1800 * 1000;
+
+                    if (window.sessionTimer) clearTimeout(window.sessionTimer);
+
+                    window.sessionTimer = setTimeout(() => {
+                        console.warn("Kiosk session time limit reached. Reloading...");
+                        localStorage.removeItem('gapi_token');
+                        window.location.reload();
+                    }, SESSION_TIMEOUT_MS);
+                }
 
             } catch (bootError) {
                 console.error('Error during auth:', bootError);
@@ -12457,40 +12498,34 @@ ${uidContent}
 
         // Add this to track authentication state better
         function setupAuthStateTracking() {
-            // Store the timestamp of the last successful authentication
-            let lastAuthCheck = Date.now();
-            const AUTH_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+            // Check if we are in Kiosk mode first
+            const storedTokenStr = localStorage.getItem('gapi_token');
+            if (storedTokenStr && storedTokenStr.includes('KIOSK_')) {
+                return; // Kiosk tokens cannot be refreshed via Google. Stop here.
+            }
 
-            // Periodically check if token is still valid
+            // Refresh token every 30 minutes (Safer buffer)
+            const REFRESH_INTERVAL = 30 * 60 * 1000;
+
             setInterval(async () => {
                 if (!isSignedIn) return;
 
-                // Only check if we've been idle for a while
-                if (Date.now() - lastAuthCheck > AUTH_CHECK_INTERVAL) {
-                    try {
-                        await gapi.client.request({
-                            path: 'https://www.googleapis.com/oauth2/v3/userinfo'
-                        });
-
-                        // If successful, update last check time
-                        lastAuthCheck = Date.now();
-                    } catch (error) {
-                        // Check if this is an auth error
-                        if (error.status === 401 ||
-                            (error.result && error.result.error &&
-                                (error.result.error.status === 'UNAUTHENTICATED' ||
-                                    error.result.error.status === 'PERMISSION_DENIED'))) {
-
-                            console.warn('Authentication token expired, attempting silent refresh');
-                            attemptSilentAuth();
+                console.log("Performing proactive token refresh...");
+                try {
+                    const tokenObj = gapi.client.getToken();
+                    if (tokenObj) {
+                        if (tokenClient) {
+                            // Silent refresh
+                            tokenClient.requestAccessToken({
+                                prompt: 'none',
+                                login_hint: currentUser?.email
+                            });
                         }
                     }
+                } catch (error) {
+                    console.warn('Proactive refresh failed', error);
                 }
-            }, 60000); // Check every minute
-
-            // Update last activity time when user interacts
-            document.addEventListener('click', () => { lastAuthCheck = Date.now(); });
-            document.addEventListener('keydown', () => { lastAuthCheck = Date.now(); });
+            }, REFRESH_INTERVAL);
         }
 
         // Try to silently refresh the token without popup
