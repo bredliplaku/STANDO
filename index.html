@@ -5906,50 +5906,29 @@
 
             // 1. UI State: Show "Verifying" spinner
             if (loginBtn) {
-                loginBtn.dataset.originalText = loginBtn.innerHTML; // Save original text
+                loginBtn.dataset.originalText = loginBtn.innerHTML;
                 loginBtn.disabled = true;
                 loginBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...';
                 loginBtn.style.backgroundColor = "#ccc";
                 loginBtn.style.cursor = "wait";
-
-                // SAFETY VALVE: Reset button after 8 seconds if Google hangs
-                setTimeout(() => {
-                    if (loginBtn.disabled && !isSignedIn) {
-                        console.warn("One Tap timed out. Resetting UI.");
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = loginBtn.dataset.originalText || '<i class="fa-brands fa-google"></i> Sign in';
-                        loginBtn.style.backgroundColor = "";
-                        loginBtn.style.cursor = "pointer";
-                    }
-                }, 8000);
             }
 
-            if (loginContainer) loginContainer.style.display = 'flex';
-
-            // 2. Request Access Token
+            // 2. Request Access Token SILENTLY
+            // This prevents the "Flash/Popup" issue.
             if (tokenClient) {
                 tokenClient.requestAccessToken({
-                    prompt: '',
+                    prompt: 'none',
                     login_hint: responsePayload.email
                 });
             } else {
                 console.error("Token Client not initialized.");
-                // Fallback: reset button if GAPI wasn't ready
-                setTimeout(() => {
-                    if (tokenClient) {
-                        tokenClient.requestAccessToken({
-                            prompt: '',
-                            login_hint: responsePayload.email
-                        });
-                    } else {
-                        if (loginBtn) {
-                            loginBtn.disabled = false;
-                            loginBtn.innerHTML = '<i class="fa-brands fa-google"></i> Sign in';
-                            loginBtn.style.backgroundColor = "";
-                            loginBtn.style.cursor = "pointer";
-                        }
-                    }
-                }, 1000);
+                // Reset UI if GAPI failed
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = loginBtn.dataset.originalText || '<i class="fa-brands fa-google"></i> Sign in';
+                    loginBtn.style.backgroundColor = "";
+                    loginBtn.style.cursor = "pointer";
+                }
             }
         }
 
@@ -10213,44 +10192,61 @@ ${uidContent}
          * @param {Object} resp - The token response object.
          */
         function handleTokenResponse(resp) {
-            // 1. Handle Silent Failure / Missing Permissions
+            const loginContainer = document.getElementById('login-container');
+            const userContainer = document.getElementById('user-container');
+            const loginBtn = document.getElementById('login-btn');
+
+            // 1. Handle Silent Failure / Missing Permissions / Popup Blocked
+            // If 'error' exists, it means the silent attempt failed (user needs to click).
             if (resp.error || !resp.access_token) {
                 console.warn('Silent auth failed or consent missing:', resp);
 
-                // Revert to "Grant Permissions" button so user can manually click and approve scopes
-                const loginContainer = document.getElementById('login-container');
-                const userContainer = document.getElementById('user-container');
-                const loginBtn = document.getElementById('login-btn');
-
-                if (userContainer) userContainer.style.display = 'none'; // Hide "Verifying..."
-                if (loginContainer) loginContainer.style.display = 'flex'; // Show button
+                // Reset UI to show the "Grant Permissions" button
+                if (userContainer) userContainer.style.display = 'none';
+                if (loginContainer) loginContainer.style.display = 'flex';
 
                 if (loginBtn) {
+                    // Important: We change the button to indicate action is needed
+                    loginBtn.disabled = false; // Re-enable button
+                    loginBtn.style.cursor = "pointer";
                     loginBtn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Grant Permissions';
-                    loginBtn.style.backgroundColor = "#fb8c00"; // Orange color to indicate action needed
-                    // Remove old listeners to prevent duplicates
+                    loginBtn.style.backgroundColor = "#fb8c00"; // Orange color
+
+                    // Ensure the click handler uses the STANDARD prompt (popup)
+                    // We clone to strip old listeners and add a fresh one
                     const newBtn = loginBtn.cloneNode(true);
                     loginBtn.parentNode.replaceChild(newBtn, loginBtn);
-                    newBtn.addEventListener('click', handleAuthClick);
+
+                    newBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        // When clicked MANUALLY, we are allowed to use 'consent' or ''
+                        tokenClient.requestAccessToken({ prompt: 'consent' });
+                    });
                 }
                 return;
             }
 
             // 2. Success - We have the Token!
             try {
-                // CRITICAL: Set the token in GAPI immediately so callWebApp can use it
+                // Set the token in GAPI immediately
                 gapi.client.setToken(resp);
                 localStorage.setItem('gapi_token', JSON.stringify(resp));
 
                 isSignedIn = true;
 
-                // This function (onSuccessfulAuth) fetches User Info + Course List + Database + Logs
-                // effectively solving the "empty dashboard" issue.
+                // Proceed to boot the app
                 onSuccessfulAuth(false);
 
             } catch (error) {
                 console.error('Error processing token:', error);
                 showNotification('error', 'Login Error', 'Token processed but boot failed.');
+
+                // Reset button on fatal error
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i class="fa-brands fa-google"></i> Sign in';
+                    loginBtn.style.backgroundColor = "";
+                }
             }
         }
 
