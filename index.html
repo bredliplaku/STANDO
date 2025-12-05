@@ -210,73 +210,6 @@
             outline: none;
         }
 
-        body.kiosk-locked .tabs,
-        body.kiosk-locked .settings-tabs-container,
-        body.kiosk-locked #logout-btn,
-        body.kiosk-locked #sync-btn,
-        body.kiosk-locked #theme-toggle-btn,
-        body.kiosk-locked .actions-cell,
-        /* Hides Edit/Delete in rows */
-        body.kiosk-locked .module-header-actions,
-        /* Hides refresh btn */
-        body.kiosk-locked .admin-dashboard-bar,
-        body.kiosk-locked .admin-only:not(.scan-buttons):not(.module-content),
-        /* Hide generic admin stuff but keep scan content */
-        body.kiosk-locked #course-buttons-container,
-        /* Prevent course switching */
-        body.kiosk-locked .filter-container
-
-        /* Prevent filtering/searching */
-            {
-            display: none !important;
-        }
-
-        /* Lock User Profile interaction */
-        body.kiosk-locked .user-info {
-            pointer-events: none;
-            opacity: 0.8;
-        }
-
-        /* Make the Stop button very prominent */
-        body.kiosk-locked .scan-buttons {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2000;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        body.kiosk-locked .big-scan-button {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border: 2px solid white;
-        }
-
-        /* Visual indicator for Kiosk Mode */
-        body.kiosk-locked .app-header {
-            background: #212121 !important;
-            /* Dark grey to signify read-only */
-            border-radius: 0 0 20px 20px;
-            margin-top: -20px;
-            /* Pull up to cover top gap */
-            padding-top: 40px;
-        }
-
-        body.kiosk-locked .app-header h1 {
-            font-size: 1.2em;
-        }
-
-        body.kiosk-locked .app-header h2 {
-            display: none;
-        }
-
-        /* Adjust main container padding */
-        body.kiosk-locked .container {
-            padding-bottom: 100px;
-            /* Space for the fixed button */
-        }
-
         .modern-course-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -5856,7 +5789,7 @@
         const CLIENT_ID = '740588046540-npg0crodtcuinveu6bua9rd6c3hb2s1m.apps.googleusercontent.com';
         const LOGS_SPREADSHEET_ID = '1AvVrBRt4_3GJTVMmFph6UsUsplV9h8jXU93n1ezbMME';
         const LOGS_STORAGE_KEY = 'attendance_logs';
-        const BRAIN_URL = 'https://script.google.com/macros/s/AKfycbw6t9SbrYYkXp7WCGM7GxpTe5ftmzh2lJOi_QGHKjwdXzB84sJX8HEr7_lRehnZLFuhCQ/exec';
+        const BRAIN_URL = 'https://script.google.com/macros/s/AKfycby5fFmsF8EPC-THkKJeySpFmCun1X51oi4zW2UqHtoRB5nG7Q5Zd-CcdsdqLtbfthRk8w/exec';
 
         // App state
         let courseData = {};
@@ -5921,8 +5854,6 @@
         let activeSessionCategory = null;
         let activeSessionGroup = null;
         let currentCourseSections = {}; // Parsed structure
-        let awaitingAdminUnlock = false; // Flag to track if we are waiting for an admin card
-
 
         // DOM Elements
         let tabs, tabContents, importExcelBtn, excelInput, filterInput, sortSelect,
@@ -6199,14 +6130,75 @@
             return html;
         }
 
-        function toggleKioskMode(enable) {
-            if (enable) {
-                document.body.classList.add('kiosk-locked');
-                localStorage.setItem('kiosk_locked', 'true');
-            } else {
-                document.body.classList.remove('kiosk-locked');
-                localStorage.removeItem('kiosk_locked');
+        /**
+ * Generates Session Toggle Buttons.
+ * @param {string} prefix - ID prefix.
+ * @param {boolean} includeInherit - Show "Same as previous".
+ * @param {boolean} isCompact - Reduces padding/size for dialogs.
+ */
+        function renderSessionControls(courseName) {
+            const controls = document.getElementById('session-controls');
+
+            // Hide immediately if not admin
+            if (!isAdmin) {
+                if (controls) controls.style.display = 'none';
+                return;
             }
+
+            const catGroup = document.getElementById('session-category-group');
+
+            // Safety check
+            if (!courseInfoMap || !courseInfoMap[courseName]) {
+                controls.style.display = 'none';
+                return;
+            }
+
+            const rawSections = courseInfoMap[courseName].availableSections || '';
+            currentCourseSections = parseAvailableSections(rawSections);
+            const categories = Object.keys(currentCourseSections);
+
+            if (categories.length === 0) {
+                controls.style.display = 'none';
+                activeSessionCategory = null;
+                activeSessionGroup = null;
+                return;
+            }
+
+            // 1. Auto-select Category Logic
+            if (!activeSessionCategory || !categories.includes(activeSessionCategory)) {
+                activeSessionCategory = categories[0];
+                activeSessionGroup = null; // Reset group
+            }
+
+            // 2. Render Categories
+            catGroup.innerHTML = '';
+            const icons = { 'theory': 'fa-book', 'lab': 'fa-desktop', 'practice': 'fa-pen-to-square' };
+
+            categories.forEach(cat => {
+                const lowerCat = cat.toLowerCase();
+                const iconClass = icons[lowerCat] || 'fa-tag';
+
+                const btn = document.createElement('div');
+                btn.className = 'course-button';
+                btn.innerHTML = `<i class="fa-solid ${iconClass}"></i>&nbsp; ${cat}`;
+
+                btn.onclick = () => selectSessionCategory(cat);
+
+                if (activeSessionCategory === cat) btn.classList.add('active');
+                catGroup.appendChild(btn);
+            });
+
+            // 3. Render Groups for the active category
+            renderGroupsForCategory(activeSessionCategory);
+
+            // 4. SMART VISIBILITY CHECK
+            const showCategories = categories.length > 1;
+            catGroup.style.display = showCategories ? 'flex' : 'none';
+
+            const grpContainer = document.getElementById('session-group-container');
+            const showGroups = grpContainer.style.display !== 'none';
+
+            controls.style.display = (showCategories || showGroups) ? 'flex' : 'none';
         }
 
         /**
@@ -6280,6 +6272,98 @@
         </div>
         ${groupRowsHtml}
     </div>`;
+        }
+
+        /**
+         * Attaches event listeners to the generated Session Selector.
+         * @param {string} containerIdPrefix - The prefix used in renderSessionSelectorHTML.
+         * @param {Object} sectionsMap - The parsed sections object.
+         */
+        function setupSessionToggleListeners(containerIdPrefix, sectionsMap) {
+            const wrapper = document.getElementById(`${containerIdPrefix}-session-wrapper`);
+            if (!wrapper) return;
+
+            const input = document.getElementById(`${containerIdPrefix}-selected-session`);
+            const inheritBtn = document.getElementById(`${containerIdPrefix}-btn-inherit`);
+            const catRow = document.getElementById(`${containerIdPrefix}-cat-row`);
+            const groupRows = wrapper.querySelectorAll('.group-row');
+
+            const updateValue = () => {
+                if (inheritBtn && inheritBtn.classList.contains('active')) {
+                    input.value = 'INHERIT';
+                    return;
+                }
+
+                const activeCat = catRow.querySelector('.course-button.active');
+                if (!activeCat) {
+                    input.value = '';
+                    return;
+                }
+
+                const catVal = activeCat.dataset.val;
+                const activeGroupRow = document.getElementById(`${containerIdPrefix}-groups-${catVal}`);
+                let groupVal = '';
+
+                if (activeGroupRow) {
+                    const activeGrp = activeGroupRow.querySelector('.course-button.active');
+                    if (activeGrp) groupVal = activeGrp.dataset.val;
+                }
+
+                // Construct session string (e.g., "Theory A" or just "Theory")
+                input.value = groupVal ? `${catVal} ${groupVal}` : catVal;
+            };
+
+            // 1. Inherit Click
+            if (inheritBtn) {
+                inheritBtn.addEventListener('click', () => {
+                    inheritBtn.classList.add('active');
+                    // Deactivate all categories
+                    catRow.querySelectorAll('.course-button').forEach(b => b.classList.remove('active'));
+                    // Hide all groups
+                    groupRows.forEach(r => r.style.display = 'none');
+                    updateValue();
+                });
+            }
+
+            // 2. Category Click
+            catRow.addEventListener('click', (e) => {
+                const btn = e.target.closest('.course-button');
+                if (!btn) return;
+
+                // Activate Category
+                if (inheritBtn) inheritBtn.classList.remove('active');
+                catRow.querySelectorAll('.course-button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const catVal = btn.dataset.val;
+
+                // Show relevant Group Row, hide others
+                groupRows.forEach(row => {
+                    if (row.id === `${containerIdPrefix}-groups-${catVal}`) {
+                        row.style.display = 'flex';
+                        // Auto-select first group if none active
+                        if (!row.querySelector('.course-button.active')) {
+                            const first = row.querySelector('.course-button');
+                            if (first) first.classList.add('active');
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                updateValue();
+            });
+
+            // 3. Group Click
+            groupRows.forEach(row => {
+                row.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.course-button');
+                    if (!btn) return;
+
+                    row.querySelectorAll('.course-button').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    updateValue();
+                });
+            });
         }
 
         /**
@@ -7088,27 +7172,7 @@
             const scanBtn = document.getElementById('scan-button');
             if (scanBtn) {
                 scanBtn.addEventListener('click', () => {
-                    // Scenario: User clicked "Stop" -> "Scan Admin Card" appears -> User clicks again to CANCEL unlock.
-                    if (awaitingAdminUnlock) {
-                        awaitingAdminUnlock = false;
-
-                        // Update UI elements manually to restore "Stop Scanning" state
-                        const scanBtn = document.getElementById('scan-button');
-                        // Force update clock immediately to overwrite the "Scan Admin" text
-                        const now = new Date();
-                        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        scanBtn.innerHTML = `
-                    <div class="scan-time-display">
-                        <span class="scan-time-digits">${timeString}</span>
-                        <span class="scan-time-text">Stop scanning</span>
-                    </div>`;
-
-                        scanBtn.classList.add('is-scanning'); // Ensure green/active style
-                        scanBtn.style.backgroundColor = ""; // Remove the indigo color
-                        return;
-                    }
-
-                    // Normal Toggle
+                    // Check if the button is in the 'is-scanning' (stop) state
                     if (scanBtn.classList.contains('is-scanning')) {
                         stopScanning();
                     } else {
@@ -7614,6 +7678,30 @@
                 uid: uid,
                 email: email,
                 role: role
+            });
+        };
+
+        window.deleteStaffKey = (rowIndex, name) => {
+            showConfirmationDialog({
+                title: "Revoke Access?",
+                message: `Are you sure you want to revoke key for <strong>${name}</strong>? They will no longer be able to log in via NFC.`,
+                confirmText: "Revoke",
+                isDestructive: true,
+                onConfirm: () => {
+                    callWebApp('manageStaff_Admin', { actionType: 'delete', rowIndex }, 'POST')
+                        .then(() => {
+                            // We must refresh the dialog data. 
+                            // Simplest way: close and reopen.
+                            document.querySelector('.dialog-backdrop').remove();
+                            showGlobalSettingsDialog();
+                            // We use a small timeout to let the dialog render before switching tabs
+                            setTimeout(() => {
+                                const tab = document.querySelector('.settings-tab-btn[data-target="sect-staff"]');
+                                if (tab) tab.click();
+                            }, 100);
+                        })
+                        .catch(err => showNotification('error', 'Error', err.message));
+                }
             });
         };
 
@@ -9164,13 +9252,6 @@ ${uidContent}
                 localStorage.removeItem('last_active_course');
             }
 
-            // REFRESH SAFETY CHECK:
-            // If the user refreshed while locked, immediately re-apply the visual lock 
-            // so they don't see admin controls while loading.
-            if (localStorage.getItem('kiosk_locked') === 'true') {
-                document.body.classList.add('kiosk-locked');
-            }
-
             document.body.classList.add('is-loading');
             isInitializing = true;
 
@@ -9584,16 +9665,6 @@ ${uidContent}
                 handleRouting();
                 populateCourseButtons();
                 updatePageTitle();
-                // KIOSK RESUME LOGIC
-                if (isAdmin && localStorage.getItem('kiosk_locked') === 'true') {
-                    // If we were locked, and we are still an admin, RESUME scanning automatically.
-                    if (nfcSupported) {
-                        startScanning();
-                    }
-                } else {
-                    // If we are not admin anymore (or lock wasn't set), ensure lock is cleared.
-                    toggleKioskMode(false);
-                }
                 updateUI();
 
                 // --- PHASE 3: BACKGROUND DATA LOADING ---
@@ -9828,27 +9899,27 @@ ${uidContent}
             dialog.setAttribute('role', 'dialog');
             dialog.setAttribute('aria-modal', 'true');
 
-            // Default message if device doesn't have NFC hardware at all
+            // Message for devices that don't support NFC
             const nfcUnsupportedMsg = `
-<div style="text-align: center; padding: 10px; border-radius: 8px; margin-top: 15px; background: #fff3e0; color: #e65100;">
-    <p style="margin: 0; font-weight:bold;"><i class="fa-solid fa-triangle-exclamation"></i> NFC Not Available</p>
-    <p style="margin: 5px 0 0 0; font-size:0.9em;">Please enter your UID manually or use Chrome on Android.</p>
-</div>`;
+        <div style="text-align: center; padding: 10px; border-radius: 8px; margin-top: 15px;">
+            <p style="margin: 0; color: var(--text-color); opacity: 1;">NFC scanning requires <a href="https://play.google.com/store/apps/details?id=com.android.chrome" target="_blank">Chrome on Android</a>.</p>
+            <p style="margin: 10px 0 0 0;">You can enter your UID manually.</p>
+        </div>`;
 
             dialog.innerHTML = `
-<h3 class="dialog-title"><i class="fa-solid fa-id-card"></i> Register Your Student ID Card</h3>
-<div class="dialog-content"><p>Your details will be sent to the lecturer for approval.</p>
-<div class="form-group"><label class="dialog-label-fixed"><i class="fa-solid fa-quote-left"></i> Name:</label><input class="form-control" value="${escapeHtml(currentUser.name)}" disabled></div>
-<div class="form-group"><label class="dialog-label-fixed"><i class="fa-solid fa-at"></i> Email:</label><input class="form-control" value="${escapeHtml(currentUser.email)}" disabled></div>
-<div class="form-group">
-    <label class="dialog-label-fixed" for="register-uid-input"><i class="fa-solid fa-wifi"></i> UID:</label>
-    <input type="text" id="register-uid-input" class="form-control" placeholder="AB:CD:12:34">
-</div>
-<div id="nfc-status-container"></div>
-</div><div class="dialog-actions">
-    <button id="cancel-register-btn" class="btn-red">Cancel</button>
-    <button id="submit-register-btn" class="btn-green" disabled>Submit</button>
-</div>`;
+        <h3 class="dialog-title"><i class="fa-solid fa-id-card"></i> Register Your Student ID Card</h3>
+        <div class="dialog-content"><p>Your details will be sent to the lecturer for approval.</p>
+        <div class="form-group"><label class="dialog-label-fixed"><i class="fa-solid fa-quote-left"></i> Name:</label><input class="form-control" value="${escapeHtml(currentUser.name)}" disabled></div>
+        <div class="form-group"><label class="dialog-label-fixed"><i class="fa-solid fa-at"></i> Email:</label><input class="form-control" value="${escapeHtml(currentUser.email)}" disabled></div>
+        <div class="form-group">
+            <label class="dialog-label-fixed" for="register-uid-input"><i class="fa-solid fa-wifi"></i> UID:</label>
+            <input type="text" id="register-uid-input" class="form-control" placeholder="AB:CD:12:34">
+        </div>
+        <div id="nfc-status-container"></div>
+        </div><div class="dialog-actions">
+            <button id="cancel-register-btn" class="btn-red">Cancel</button>
+            <button id="submit-register-btn" class="btn-green" disabled>Submit</button>
+        </div>`;
 
             dialogBackdrop.appendChild(dialog);
             document.body.appendChild(dialogBackdrop);
@@ -9870,29 +9941,21 @@ ${uidContent}
 
             uidInput.addEventListener('input', checkSubmitButton);
 
-            // --- LOGIC: Explicitly handle errors here ---
+            // Start scanning if supported
             if (nfcSupported) {
                 nfcStatusContainer.innerHTML = `<div class="sync-status syncing" style="justify-content: center; padding: 30px 0; font-size: 1em; color: var(--primary-color);"><i class="fa-solid fa-wifi"></i> <span>Ready to Scan...</span></div>`;
-
                 registrationNfcController = new AbortController();
                 const reader = new NDEFReader();
-
                 reader.scan({ signal: registrationNfcController.signal }).then(() => {
                     reader.onreading = ({ serialNumber }) => {
                         uidInput.value = serialNumber;
                         playSound(true);
                         nfcStatusContainer.innerHTML = `<div class="sync-status success" style="justify-content: center; padding: 30px 0; font-size: 1em; color: var(--success-color);"><i class="fa-solid fa-circle-check"></i> <span>Card Scanned!</span></div>`;
                         checkSubmitButton();
-                        registrationNfcController.abort();
+                        registrationNfcController.abort(); // Stop scanning after success
                     };
                 }).catch(err => {
-                    // SHOW ERROR HERE in the Red Box
-                    if (err.name !== 'AbortError') {
-                        let msg = "Scan failed. Please type UID manually.";
-                        if (err.name === 'NotAllowedError') msg = "NFC Permission Denied.";
-
-                        nfcStatusContainer.innerHTML = `<div class="sync-status error" style="justify-content: center; padding: 30px 0; font-size: 1em; color: var(--danger-color);"><i class="fa-solid fa-circle-xmark"></i> <span>${msg}</span></div>`;
-                    }
+                    if (err.name !== 'AbortError') nfcStatusContainer.innerHTML = `<div class="sync-status error" style="justify-content: center; padding: 30px 0; font-size: 1em; color: var(--danger-color);"><i class="fa-solid fa-circle-xmark"></i> <span>Couldn't scan the card. Please make sure NFC is turned on and try again.</span></div>`;
                 });
             } else {
                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -9910,23 +9973,28 @@ ${uidContent}
                 submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Submitting...';
 
                 const submitData = {
-                    action: "submitRegistration",
+                    action: "submitRegistration", // <-- ADD THIS LINE
                     name: currentUser.name,
                     email: currentUser.email,
                     uid: uid
                 };
 
+                // Use fetch to send the data and wait for a real response
                 callWebApp('submitRegistration', submitData, 'POST')
-                    .then(data => {
+                    .then(data => { // 'data' is already the parsed result from ContentService
                         if (data && data.result === 'success') {
                             showNotification('success', 'Submission Sent!', 'Your Student ID Card application has been sent for approval.');
                             closeDialog();
                         } else {
-                            throw new Error((data && data.message) ? data.message : "An unknown error occurred.");
+                            const errorMessage = (data && data.message) ? data.message : "An unknown error occurred.";
+                            console.error('Script Error:', errorMessage);
+                            showNotification('error', 'Submission Failed', errorMessage);
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Submit';
                         }
                     }).catch(err => {
                         console.error('API Error:', err);
-                        showNotification('error', 'Submission Failed', err.message);
+                        showNotification('error', 'Submission Failed', `A network error occurred: ${err.message}`);
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Submit';
                     });
@@ -10842,112 +10910,6 @@ ${uidContent}
         }
 
         /**
- * Shows a dialog with full details of a permission request.
- * Used by both the Pending list and History list.
- */
-        function showPermissionDetailsDialog(data, isReadOnly = false) {
-            document.body.style.overflow = 'hidden';
-
-            const dialogBackdrop = document.createElement('div');
-            dialogBackdrop.className = 'dialog-backdrop';
-            const dialog = document.createElement('div');
-            dialog.className = 'dialog';
-            dialog.setAttribute('role', 'dialog');
-            dialog.setAttribute('aria-modal', 'true');
-
-            let attachmentHtml = '<span style="opacity:0.5; font-style:italic;">No attachment</span>';
-            if (data.attachmentUrl) {
-                attachmentHtml = `<a href="${data.attachmentUrl}" target="_blank" class="btn-attachment"><i class="fa-solid fa-paperclip"></i> View Document</a>`;
-            }
-
-            // Determine Action Buttons based on context
-            let actionsHtml = '';
-            if (isReadOnly) {
-                actionsHtml = `<button id="close-details-btn" class="btn-blue"><i class="fa-solid fa-xmark"></i> Close</button>`;
-            } else {
-                actionsHtml = `
-            <button id="close-details-btn" class="btn-blue" style="margin-right:auto;"><i class="fa-solid fa-xmark"></i> Close</button>
-            <button id="reject-req-btn" class="btn-red"><i class="fa-solid fa-ban"></i> Reject</button>
-            <button id="approve-req-btn" class="btn-green"><i class="fa-solid fa-check"></i> Approve</button>
-        `;
-            }
-
-            // Handle session badge if present
-            let sessionHtml = '';
-            if (data.session && data.session !== 'Default') {
-                sessionHtml = `<span style="background:#e3f2fd; color:var(--primary-color); font-weight:700; font-size:0.8em; padding:2px 8px; border-radius:4px; margin-left:10px;">${escapeHtml(data.session)}</span>`;
-            }
-
-            dialog.innerHTML = `
-        <h3 class="dialog-title"><i class="fa-solid fa-circle-info"></i> Request Details</h3>
-        <div class="dialog-content">
-            <div class="form-group" style="align-items: flex-start;">
-                <label class="dialog-label-fixed"><i class="fa-solid fa-user"></i> Student</label>
-                <div class="form-control" style="background:#f9f9f9; border:none;">
-                    <strong>${escapeHtml(data.studentName)}</strong><br>
-                    <small style="opacity:0.7">${escapeHtml(data.studentEmail)}</small>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="dialog-label-fixed"><i class="fa-solid fa-book"></i> Course</label>
-                <div class="form-control" style="background:#f9f9f9; border:none; display:flex; align-items:center;">
-                    ${escapeHtml(data.course ? data.course.replace(/_/g, ' ') : 'N/A')}
-                    ${sessionHtml}
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="dialog-label-fixed"><i class="fa-regular fa-clock"></i> Date/Time</label>
-                <input class="form-control" value="${escapeHtml(data.absenceDate)} (${escapeHtml(data.hours)})" disabled>
-            </div>
-
-            <div class="form-group">
-                <label class="dialog-label-fixed"><i class="fa-solid fa-tag"></i> Reason</label>
-                <input class="form-control" value="${escapeHtml(data.reasonType)}" disabled>
-            </div>
-
-            <div class="form-group" style="align-items:flex-start;">
-                <label class="dialog-label-fixed" style="margin-top:10px;"><i class="fa-solid fa-align-left"></i> Description</label>
-                <textarea class="form-control" rows="3" disabled>${escapeHtml(data.description || 'No description provided.')}</textarea>
-            </div>
-
-            <div class="form-group">
-                <label class="dialog-label-fixed"><i class="fa-solid fa-paperclip"></i> Proof</label>
-                <div style="flex-grow:1;">${attachmentHtml}</div>
-            </div>
-        </div>
-        <div class="dialog-actions">
-            ${actionsHtml}
-        </div>
-    `;
-
-            dialogBackdrop.appendChild(dialog);
-            document.body.appendChild(dialogBackdrop);
-
-            const closeDialog = () => {
-                if (document.body.contains(dialogBackdrop)) {
-                    document.body.removeChild(dialogBackdrop);
-                }
-                document.body.style.overflow = '';
-            };
-
-            document.getElementById('close-details-btn').addEventListener('click', closeDialog);
-
-            if (!isReadOnly) {
-                document.getElementById('approve-req-btn').addEventListener('click', () => {
-                    closeDialog();
-                    showApproveAbsenceDialog(data);
-                });
-
-                document.getElementById('reject-req-btn').addEventListener('click', () => {
-                    closeDialog();
-                    showRejectAbsenceDialog(data);
-                });
-            }
-        }
-
-        /**
          * Attaches click listeners to the approve/reject/delete absence buttons.
          */
         function attachAbsenceActionListeners() {
@@ -11758,6 +11720,7 @@ ${uidContent}
         /**
          * Handle auth button click to sign in.
          */
+        // Replace your handleAuthClick function with this updated version
         function handleAuthClick(e) {
             sessionStorage.setItem('redirect_hash', window.location.hash);
             if (e) e.preventDefault();
@@ -11800,23 +11763,23 @@ ${uidContent}
         }
 
         /**
-  * Starts an NFC reader to populate a given input field.
-  * Handles errors LOCALLY so they are always seen by the user, 
-  * regardless of global suppression settings.
-  */
+ * Starts an NFC reader to populate a given input field.
+ * @param {HTMLInputElement} inputElement The input field to fill with the scanned UID.
+ * @param {HTMLElement} statusContainer The div where status messages will be shown.
+ * @returns {AbortController | null} The controller to stop the scan, or null if not supported.
+ */
         function startNfcForInputDialog(inputElement, statusContainer, scanButton) {
             if (!nfcSupported) {
                 if (/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                    statusContainer.innerHTML = `<p style="text-align:center; font-size: 0.9em; opacity: 0.8; color:var(--danger-color);">NFC scanning requires Chrome on Android.</p>`;
+                    statusContainer.innerHTML = `<p style="text-align:center; font-size: 0.9em; opacity: 0.8;">NFC scanning requires Chrome on Android.</p>`;
                 }
                 return null;
             }
 
-            // UI: Scanning State
             statusContainer.style.minHeight = '48px';
             statusContainer.innerHTML = `<div class="sync-status syncing" style="justify-content: center; padding: 15px 0; font-size: 1em;"><i class="fa-solid fa-wifi"></i> <span>Ready to Scan...</span></div>`;
 
-            // Abort any previous global or local controller
+            // 1. Abort any existing controller before creating a new one
             if (window.activeNfcController) {
                 window.activeNfcController.abort();
             }
@@ -11826,17 +11789,15 @@ ${uidContent}
 
             reader.scan({ signal: nfcController.signal }).then(() => {
                 reader.onreading = ({ serialNumber }) => {
-                    // SUCCESS
                     inputElement.value = serialNumber;
                     playSound(true);
                     statusContainer.innerHTML = `<div class="sync-status success" style="justify-content: center; padding: 15px 0; font-size: 1em;"><i class="fa-solid fa-circle-check"></i> <span>Card Scanned!</span></div>`;
 
                     if (scanButton) {
-                        scanButton.disabled = true;
-                        scanButton.innerHTML = '<i class="fa-solid fa-check"></i>';
+                        scanButton.disabled = true; // Deactivate the button
+                        scanButton.innerHTML = '<i class="fa-solid fa-check"></i>'; // Show a checkmark
                     }
-
-                    // Fade out success message
+                    // Fade out the status message after 2.5 seconds
                     setTimeout(() => {
                         statusContainer.innerHTML = '';
                         statusContainer.style.minHeight = '0';
@@ -11845,19 +11806,10 @@ ${uidContent}
                     nfcController.abort();
                 };
             }).catch(err => {
-                // ERROR HANDLER - SHOWS ERROR LOCALLY
                 if (err.name !== 'AbortError') {
-                    console.warn("Local NFC Error:", err);
-                    let msg = "Scan failed.";
-
-                    if (err.name === 'NotAllowedError') msg = "NFC Permission Denied.";
-                    else if (err.name === 'NotSupportedError') msg = "NFC Not Supported.";
-                    else msg = err.message || "Scan Error";
-
-                    // Force show error in the red box inside the dialog
-                    statusContainer.innerHTML = `<div class="sync-status error" style="justify-content: center; padding: 15px 0; font-size: 1em;"><i class="fa-solid fa-circle-xmark"></i> <span>${msg}</span></div>`;
+                    statusContainer.innerHTML = `<div class="sync-status error" style="justify-content: center; padding: 15px 0; font-size: 1em;"><i class="fa-solid fa-circle-xmark"></i> <span>Scan failed. Is NFC on?</span></div>`;
                 }
-                window.activeNfcController = null;
+                window.activeNfcController = null; // Clean up on error
             });
 
             return nfcController;
@@ -12254,9 +12206,6 @@ ${uidContent}
                     }
                 } else {
                     document.body.classList.remove('is-admin');
-                    if (isScanning) {
-                        stopScanning();
-                    }
                 }
 
                 if (courseButtonsContainer) courseButtonsContainer.style.display = 'flex';
@@ -12268,7 +12217,7 @@ ${uidContent}
                 const hasActiveData = isSignedIn || (Object.keys(courseData).length > 0 && currentCourse);
                 if (scanHistoryModule) scanHistoryModule.style.display = hasActiveData ? 'block' : 'none';
 
-                // --- UID Column Visibility ---
+                // --- UID Column Visibility (FIXED) ---
                 document.querySelectorAll('.uid-column').forEach(col => {
                     col.style.display = isAdmin ? 'table-cell' : 'none';
                 });
@@ -15653,13 +15602,11 @@ ${uidContent}
 
                 isScanning = true;
 
-                // LOCK THE UI
-                if (isAdmin) {
-                    toggleKioskMode(true);
-                }
+                // UI Update
+                const scanBtn = document.getElementById('scan-button');
+                scanBtn.classList.add('is-scanning');
 
-                updateScanButtons();
-                // Clock logic...
+                // FORCE CLOCK START
                 updateScanClock();
                 if (scanClockInterval) clearInterval(scanClockInterval);
                 scanClockInterval = setInterval(updateScanClock, 1000);
@@ -15670,21 +15617,7 @@ ${uidContent}
         }
 
         function handleScanningError(error) {
-            // 1. Silent Fail for Signed Out users (prevents spam on personal phones)
-            if (!isSignedIn) {
-                console.warn("NFC Error (Signed Out):", error);
-                stopScanning();
-                return;
-            }
-
-            // 2. Silent Fail for Students (they shouldn't be scanning anyway)
-            if (isSignedIn && !isAdmin) {
-                console.warn("NFC Error (Student):", error);
-                stopScanning();
-                return;
-            }
-
-            // 3. Only show visual errors to Admins who are actively trying to scan
+            // Handle permission denied and other errors
             let errorMessage = error.message;
             let errorTitle = 'Scanner error';
 
@@ -15696,8 +15629,6 @@ ${uidContent}
                 errorMessage = 'Your device doesn\'t support NFC or it\'s turned off.';
             }
 
-            // Play error sound only for Admins
-            playSound(false);
             showNotification('error', errorTitle, errorMessage);
             stopScanning();
         }
@@ -15708,54 +15639,99 @@ ${uidContent}
 
             if (!scanBtn || !scanButtonsContainer) return;
 
-            // 1. Basic Hardware Check
-            if (!nfcSupported) {
-                scanBtn.style.display = 'none';
-                scanButtonsContainer.style.display = 'none';
-                return;
-            }
+            // Show button if supported
+            scanBtn.style.display = nfcSupported ? 'flex' : 'none';
+            scanButtonsContainer.style.display = nfcSupported ? 'flex' : 'none';
 
-            // 2. Permission Check
-            // Show if: Signed Out (for Kiosk Login) OR Admin
-            // Hide if: Signed In AND Not Admin (Student)
-            const isStudent = isSignedIn && !isAdmin;
-
-            if (isStudent) {
-                scanBtn.style.display = 'none';
-                scanButtonsContainer.style.display = 'none';
-            } else {
-                scanBtn.style.display = 'flex';
-                scanButtonsContainer.style.display = 'flex';
-            }
-
-            // 3. Visual State
             if (isScanning) {
                 scanBtn.classList.add('is-scanning');
-                // Clock is handled by updateScanClock interval
+                // updateScanClock() handles the text/time display.
             } else {
                 scanBtn.classList.remove('is-scanning');
+
+                // --- UNIFIED IDLE STATE ---
+                // Always show "START SCANNING" regardless of login status
                 scanBtn.innerHTML = '<i class="fa-solid fa-wifi"></i><b>&nbsp;&nbsp; START SCANNING</b>';
             }
         }
 
-        async function processAttendanceScan(serialNumber) {
-            // Check if we are in "Lecturer Mode"
+        /**
+ * Handle NFC reading.
+ * SCENARIO A: If logged out, checks if the card belongs to an Admin to log them in.
+ * SCENARIO B: If logged in, records attendance for the current course.
+ */
+        async function handleNfcReading({ serialNumber }) {
+            playSound(true);
+
+            // Check if we are in "Lecturer Mode" (Offline/Signed Out but have active course data)
+            // If courseData exists for the current course, we assume the lecturer is scanning students.
             const isLecturerMode = !isSignedIn && currentCourse && courseData[currentCourse];
 
+            // ============================================================
+            // SCENARIO A: LOGIN CHECK / GUEST MODE
+            // Run this ONLY if we are NOT signed in AND NOT in Lecturer Mode
+            // ============================================================
             if (!isSignedIn && !isLecturerMode) {
-                // If not signed in and not in lecturer mode, scanning shouldn't happen here
-                return;
+                const notSignedInMsg = document.getElementById('not-signed-in-message');
+                if (notSignedInMsg) notSignedInMsg.innerHTML = `<div style="text-align:center;">Checking...</div>`;
+
+                try {
+                    const myDeviceId = getDeviceFingerprint();
+                    // Call Backend to check if this UID belongs to a staff member
+                    const response = await fetch(BRAIN_URL, {
+                        method: 'POST',
+                        redirect: 'follow',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'loginWithNfc',
+                            uid: serialNumber,
+                            deviceId: myDeviceId,
+                            logsSpreadsheetId: LOGS_SPREADSHEET_ID
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.result === 'success') {
+                        // === ADMIN LOGIN SUCCESS ===
+                        const fakeGapiToken = { access_token: data.token };
+                        localStorage.setItem('gapi_token', JSON.stringify(fakeGapiToken));
+                        gapi.client.setToken(fakeGapiToken);
+                        currentUser = data.user;
+                        showNotification('success', 'Session Active', `Welcome, ${currentUser.name}`);
+                        onSuccessfulAuth(false);
+                    } else {
+                        // === STUDENT CARD (GUEST MODE) ===
+                        // Just show the UID
+                        lastScannedUID = serialNumber;
+                        updateAuthUI();
+                    }
+
+                } catch (err) {
+                    // Network error implies we are offline, show UID
+                    lastScannedUID = serialNumber;
+                    updateAuthUI();
+                }
+                return; // Stop here
             }
+
+            // ============================================================
+            // SCENARIO B: ATTENDANCE RECORDING
+            // Runs if Signed In OR in Lecturer Mode
+            // ============================================================
 
             const primaryUid = uidToPrimaryUidMap[serialNumber];
             const finalUid = primaryUid || serialNumber;
             lastScannedUID = serialNumber;
 
+            // Security Check: Only block if we are signed in but NOT an admin
+            // (If isLecturerMode is true, we bypass this because auth is offline)
             if (isSignedIn && !isAdmin) {
                 showNotification('error', 'Action Not Allowed', 'Only administrators can record attendance.');
                 return;
             }
 
+            // Cooldown
             if (cooldownUIDs.has(finalUid)) return;
             cooldownUIDs.add(finalUid);
             setTimeout(() => { cooldownUIDs.delete(finalUid) }, 2000);
@@ -15766,19 +15742,26 @@ ${uidContent}
             }
 
             const timestamp = new Date();
-            let sessionStr = getCurrentActiveSession();
+
+            let sessionStr = '';
+            if (activeSessionCategory) {
+                sessionStr = activeSessionCategory;
+                if (activeSessionGroup) {
+                    sessionStr += ' ' + activeSessionGroup;
+                }
+            }
 
             let newLog = {
                 uid: serialNumber,
                 timestamp: timestamp.getTime(),
                 id: Date.now() + Math.random().toString(36).substring(2, 11),
                 manual: false,
-                session: sessionStr
+                session: getCurrentActiveSession()
             };
 
+            // In LecturerMode, currentUser might be null, which is fine
             newLog = touchLogForEdit(newLog, currentUser?.email || 'Offline Lecturer');
 
-            // Safe Load Ensure
             if (!courseData[currentCourse]) {
                 courseData[currentCourse] = { logs: [], tombstones: new Set() };
             }
@@ -15787,9 +15770,11 @@ ${uidContent}
             saveAndMarkChanges(currentCourse);
             updateUI();
 
-            // Mobile Overlay Logic
+            // Trigger the Welcome Overlay logic (Same as before)
             const name = primaryUid ? databaseMap[primaryUid]?.name : 'Unknown';
-            if (window.innerWidth <= 700) {
+            const isMobile = window.innerWidth <= 700;
+
+            if (isMobile) {
                 const overlay = document.getElementById('scan-announcement-overlay');
                 const nameEl = document.getElementById('scan-announcement-name');
                 if (overlay && nameEl) {
@@ -15814,60 +15799,6 @@ ${uidContent}
             }
         }
 
-        /**
- * Handle NFC reading.
- * SCENARIO A: If logged out, checks if the card belongs to an Admin to log them in.
- * SCENARIO B: If logged in, records attendance for the current course.
- */
-        async function handleNfcReading({ serialNumber }) {
-            playSound(true);
-
-            // SCENARIO: UNLOCKING ATTEMPT
-            if (awaitingAdminUnlock) {
-                // Show temporary feedback
-                const scanBtn = document.getElementById('scan-button');
-                scanBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...`;
-
-                try {
-                    // Check local Staff Cache first (Optimization)
-                    // If not found, call backend.
-
-                    // We assume online for backend check
-                    if (!isOnline) {
-                        showNotification('warning', 'Offline', 'Cannot verify Admin card offline. Connect to unlock.');
-                        // Restore button text
-                        scanBtn.innerHTML = `<i class="fa-solid fa-user-lock"></i> &nbsp; SCAN ADMIN CARD TO UNLOCK`;
-                        return;
-                    }
-
-                    const result = await callWebApp('verifyStaffUid', { uid: serialNumber }, 'POST');
-
-                    if (result && result.isAdmin) {
-                        showNotification('success', 'Unlocked', `Welcome back, ${result.name}`);
-                        performStop(); // SUCCESS: Stop scanning and unlock
-                    } else {
-                        showNotification('error', 'Access Denied', 'Card is not an Admin.');
-
-                        // FAILED: Treat as attendance scan?
-                        // User said: "If not keep scanning on."
-                        // We record it as attendance because it might have been a student scanning by mistake.
-                        await processAttendanceScan(serialNumber);
-
-                        // Reset button to "Scan Admin to Unlock"
-                        scanBtn.innerHTML = `<i class="fa-solid fa-user-lock"></i> &nbsp; SCAN ADMIN CARD TO UNLOCK`;
-                    }
-                } catch (e) {
-                    console.error(e);
-                    showNotification('error', 'Error', 'Verification failed.');
-                    scanBtn.innerHTML = `<i class="fa-solid fa-user-lock"></i> &nbsp; SCAN ADMIN CARD TO UNLOCK`;
-                }
-                return;
-            }
-
-            // SCENARIO: NORMAL ATTENDANCE SCAN
-            await processAttendanceScan(serialNumber);
-        }
-
 
         /**
          * Handle NFC error.
@@ -15885,58 +15816,26 @@ ${uidContent}
          * Stop NFC scanning.
          */
         function stopScanning() {
-            // If already awaiting unlock, do nothing (or cancel?)
-            if (awaitingAdminUnlock) return;
-
-            // If we are in Kiosk Mode (Admin Locked), intercept the stop
-            const isLocked = document.body.classList.contains('kiosk-locked');
-
-            if (isLocked) {
-                // Trigger Unlock Flow
-                awaitingAdminUnlock = true;
-
-                // Show a non-blocking toast/notification instead of a modal 
-                // so the NDEFReader keeps running smoothly.
-                const scanBtn = document.getElementById('scan-button');
-                const originalContent = scanBtn.innerHTML;
-
-                scanBtn.innerHTML = `<i class="fa-solid fa-user-lock"></i> &nbsp; SCAN ADMIN CARD TO UNLOCK`;
-                scanBtn.style.backgroundColor = "#5c6bc0"; // Indigo color
-
-                // Add a cancel option (Click again to cancel unlock attempt)
-                const cancelUnlock = () => {
-                    awaitingAdminUnlock = false;
-                    updateScanClock(); // Restore clock text
-                    scanBtn.style.backgroundColor = ""; // Restore original color
-                    scanBtn.removeEventListener('click', cancelUnlock);
-                    // Re-bind original listener is handled by the main initialization, 
-                    // we just stopped the specific unlock state.
-                };
-
-                // We briefly unbind the main listener logic in the click handler 
-                // to allow canceling the "Await" state.
-                // However, simpler is: if clicked again while awaiting, cancel await.
-                return;
-            }
-
-            // Normal Stop (For non-locked sessions or after unlock)
-            performStop();
-        }
-
-        // Helper for actual stopping
-        function performStop() {
             if (nfcAbortController) {
                 nfcAbortController.abort();
                 nfcAbortController = null;
             }
+
+            // --- STOP CLOCK ---
             isScanning = false;
-            awaitingAdminUnlock = false;
             if (scanClockInterval) {
                 clearInterval(scanClockInterval);
                 scanClockInterval = null;
             }
-            toggleKioskMode(false); // Unlock UI
-            updateScanButtons();
+
+            // Reset button UI
+            const scanBtn = document.getElementById('scan-button');
+            if (scanBtn) {
+                scanBtn.classList.remove('is-scanning');
+                scanBtn.innerHTML = '<i class="fa-solid fa-wifi"></i><b>&nbsp;&nbsp; START SCANNING</b>';
+            }
+
+            if (nfcReader) nfcReader = null;
         }
 
         /**
