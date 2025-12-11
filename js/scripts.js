@@ -3515,6 +3515,8 @@ function init() {
 
     setupThemeToggle();
 
+    setupCatCompanion();
+
     // Start with nfcSupported as false
     nfcSupported = false;
 
@@ -5711,7 +5713,7 @@ function showApproveAbsenceDialog(data) {
     <p>Approve hours for <strong>${escapeHtml(data.studentName)}</strong>. Unselect any hours you wish to deny.</p>
     
     <div class="form-group" style="align-items: flex-start;">
-        <label>Hours*:</label>
+        <label>Hours:</label>
         <div id="approve-hours-group" class="toggle-button-group" style="flex-wrap: wrap;">
             ${hourButtons}
         </div>
@@ -10322,6 +10324,151 @@ function selectCourseButton(course) {
     }
     // Now, proceed with the hash change which will trigger the data load
     window.location.hash = course;
+}
+
+/**
+ * Initializes the Cat Companion with optimized logic.
+ * Features: Accessibility, No-Flicker text swapping, uniqueness check.
+ */
+function setupCatCompanion() {
+    const cat = document.getElementById('cat-companion');
+    const bubble = document.getElementById('cat-speech-bubble');
+    if (!cat || !bubble || cat.dataset.initialized === "true") return;
+
+    // Accessibility: Make it interactive for keyboard users
+    cat.setAttribute('role', 'button');
+    cat.setAttribute('tabindex', '0');
+    cat.setAttribute('aria-label', 'Cat Companion: Click for a message');
+
+    let bubbleTimeout;
+    let animationTimeout;
+    let lastIndex = -1;
+
+    // Add your custom messages here
+    const messages = [
+        // --- 🐱 Generic & Lazy (The Personality) ---
+        "I see you have a deadline. I, too, have a deadline... for my next nap. 😴",
+        "Have you tried turning it off and on again? Or just walking away? 💻",
+        "I am not lazy, I am on energy-saving mode.",
+        "Stop clicking me. I am not a mouse. 🐭",
+        "My code compiles. Your attendance... remains to be seen.",
+        "I’m just here for the digital warmth of your CPU.",
+        "System Status: Purring. Attendance Status: Pending.",
+        "If I fits, I sits. If you scans, you stands.",
+        "Don't mind me, just debugging your life choices.",
+        "I accept payment in tuna or verified timestamps. 🐟",
+
+        // --- 🏫 Attendance & Scanning (The Core Function) ---
+        "Did you scan your ID? Or are we pretending to be present today?",
+        "8:40 AM classes are a crime against nature. But you still have to go.",
+        "I calculate a 99% probability that you'd rather be sleeping.",
+        "Tap the card. Hear the beep. Go to sleep. Repeat. 🔁",
+        "Your attendance percentage is looking... interesting.",
+        "Attendance is mandatory. My approval is optional.",
+        "I am watching the database. Always watching. 👁️",
+        "You are here. But are you *mentally* here?",
+        "Missing one lecture is a slippery slope to missing the semester.",
+        "Scanning in for a friend? I saw nothing... or did I? 🕵️",
+
+        // --- 📝 Absences & Excuses (The "Excuse" Page Logic) ---
+        "Calling in sick? I hope you have a doctor's note, or at least a good story.",
+        "The 'Car broke down' excuse again? A classic.",
+        "I see you're requesting permission. I grant you permission to pet me.",
+        "Justifying an absence requires art. And a PDF attachment.",
+        "Was it really a 'medical emergency' or just a 'Netflix marathon'?",
+        "I don't judge your absences. The algorithm does that for me.",
+        "Submitting a request... fingers crossed the professor is in a good mood.",
+        "If you miss the Lab, you miss the fun. And the grades.",
+
+        // --- 🎓 University Life (Coffee & Exams) ---
+        "Po vjen koha e kafes. ☕",
+        "Is it time for Macchiato yet?",
+        "That's a lot of reading material. Have you considered absorbing it via osmosis?",
+        "Exams are coming. Panic is optional.",
+        "Grades, attendance, sleep. Pick two.",
+        "I suggest we pause this 'studying' for a quick snack break.",
+        "The library is for sleeping, right?",
+        "Engineering is hard. Napping is easy.",
+        "Calculus? I prefer Cat-culus.",
+        "Stressing about the GPA won't help. Scanning your ID might.",
+
+        // --- 🇦🇱 Local Flavour ---
+        "What did Bereqet cook today?",
+        "Trafiku i Tiranës... say no more.",
+        "Gati për mësim?",
+    ];
+
+    const triggerCatInteraction = () => {
+        // --- Easter Egg Logic (1 in 100 chance) ---
+        const chance = 10000;
+        const randomNumber = Math.floor(Math.random() * chance);
+
+        if (randomNumber === 0) {
+            window.open('https://youtu.be/dQw4w9WgXcQ', '_blank');
+            return;
+        }
+
+        // 2. Get Unique Message
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * messages.length);
+        } while (randomIndex === lastIndex && messages.length > 1);
+        lastIndex = randomIndex;
+
+        const text = messages[randomIndex];
+
+        // 3. Smart Duration Calculation
+        // Base time (3s) + 50ms per character. 
+        // Example: "Hello" = 3.2s. "Long sentence..." = 6-8s. Max cap 12s.
+        const readTime = Math.min(Math.max(3000, text.length * 60), 12000);
+
+        // 4. Clear ANY pending hide timers immediately
+        clearTimeout(bubbleTimeout);
+        clearTimeout(animationTimeout);
+
+        // 5. Update Bubble
+        if (bubble.classList.contains('visible')) {
+            // Instant swap if already open
+            bubble.textContent = text;
+            startHideTimer(readTime);
+        } else {
+            // Pop-in animation if closed
+            animationTimeout = setTimeout(() => {
+                bubble.textContent = text;
+                bubble.classList.add('visible');
+            }, 50);
+            startHideTimer(readTime);
+        }
+    };
+
+    const startHideTimer = (duration) => {
+        bubbleTimeout = setTimeout(() => {
+            bubble.classList.remove('visible');
+        }, duration);
+    };
+
+    // Click Handler
+    cat.addEventListener('click', (event) => {
+        event.stopPropagation();
+        triggerCatInteraction();
+    });
+
+    // Keyboard Handler
+    cat.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            triggerCatInteraction();
+        }
+    });
+
+    // Close on Outside Click
+    document.addEventListener('click', (event) => {
+        if (bubble.classList.contains('visible') && !cat.contains(event.target)) {
+            clearTimeout(bubbleTimeout); // Stop the timer so it doesn't fire later
+            bubble.classList.remove('visible');
+        }
+    });
 }
 
 // Initialize the application when window loads

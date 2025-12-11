@@ -5281,6 +5281,90 @@
             }
         }
 
+        /* --- Cat Companion Styles --- */
+        #cat-companion {
+            position: fixed;
+            bottom: 20px;
+            right: 60px;
+            z-index: 999;
+            /* Below dialogs (1000+) but above page content */
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100px;
+            /* Adjust based on your image size */
+        }
+
+        #cat-companion img {
+            width: 150%;
+            height: auto;
+            display: block;
+            /* Optional: Add a drop shadow to the cat */
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        #cat-companion:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        /* Speech Bubble */
+        .cat-speech-bubble {
+            position: absolute;
+            bottom: 100%;
+            /* Position above the cat */
+            right: -20px;
+            background-color: var(--card-background);
+            color: var(--text-color);
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-bottom-right-radius: 2px;
+            /* Tail effect */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e0e0e0;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            width: 170px;
+
+            /* --- JUSTIFICATION SETTINGS --- */
+            text-align: justify;
+            -webkit-hyphens: auto;
+            -moz-hyphens: auto;
+            hyphens: auto;
+            word-break: break-word;
+
+            /* Hidden State */
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px) scale(0.9);
+            transform-origin: bottom right;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Visible State */
+        .cat-speech-bubble.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Dark Mode Adjustments */
+        .dark-mode .cat-speech-bubble {
+            background-color: #2c2c2e;
+            border-color: #444;
+            color: #e0e0e0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Hide on Mobile (As requested) */
+        @media (max-width: 768px) {
+            #cat-companion {
+                display: none !important;
+            }
+        }
+
         .skeleton-line,
         .skeleton-info-item,
         .skeleton-course-btn,
