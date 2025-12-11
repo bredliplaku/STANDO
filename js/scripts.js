@@ -5,7 +5,7 @@ let adminCourses = [];
 const CLIENT_ID = '740588046540-npg0crodtcuinveu6bua9rd6c3hb2s1m.apps.googleusercontent.com';
 const LOGS_SPREADSHEET_ID = '1AvVrBRt4_3GJTVMmFph6UsUsplV9h8jXU93n1ezbMME';
 const LOGS_STORAGE_KEY = 'attendance_logs';
-const BRAIN_URL = 'https://script.google.com/macros/s/AKfycby5fFmsF8EPC-THkKJeySpFmCun1X51oi4zW2UqHtoRB5nG7Q5Zd-CcdsdqLtbfthRk8w/exec';
+const BRAIN_URL = 'https://script.google.com/macros/s/AKfycbwsXsT-4XcAVD2DkjpdjSyeKt8si9UyLOrUryEx36X7Cyn4mGMw_w8j27HImBA1Uh7LMQ/exec';
 
 // App state
 let courseData = {};
@@ -7164,39 +7164,52 @@ function toSheetRow(log) {
 async function loadAndMergeCourseData(courseName) {
     if (!courseName) return;
 
-    // 1. Load from Disk immediately (The Safety Net)
+    // 1. Load from Disk
     const localData = await loadCourseFromLocalStorage(courseName);
 
-    // Initialize memory with local data so UI shows something immediately
     courseData[courseName] = {
         logs: localData.logs || [],
         tombstones: localData.tombstones || new Set()
     };
 
-    // 2. If Online, Fetch and Merge (The Sync)
+    // 2. Fetch and Merge
     if (isOnline && isSignedIn) {
         try {
             let serverLogs = [];
+            let serverTombstones = new Set(); // New Set for server deletions
+
             if (isAdmin) {
-                serverLogs = await callWebApp('getCourseLogs_Admin', { courseName: courseName }, 'POST');
+                // Admin gets { logs: [], tombstones: [] }
+                const response = await callWebApp('getCourseLogs_Admin', { courseName: courseName }, 'POST');
+
+                // Handle new format
+                if (response.logs) {
+                    serverLogs = response.logs;
+                    if (response.tombstones) {
+                        serverTombstones = new Set(response.tombstones);
+                    }
+                } else {
+                    // Fallback for old format (just array)
+                    serverLogs = response;
+                }
             } else {
+                // Students just get logs (they can't delete anyway)
                 serverLogs = await callWebApp('getStudentLogs', { courseName: courseName }, 'POST');
             }
 
-            // 3. Strict Merge
-            const mergedLogs = mergeLogs(serverLogs, localData.logs, localData.tombstones, new Set());
+            // 3. Strict Merge with SERVER TOMBSTONES
+            // This ensures if Server says "ID 123 is deleted", Local deletes it too.
+            const mergedLogs = mergeLogs(serverLogs, localData.logs, localData.tombstones, serverTombstones);
 
-            // 4. Update Memory and Disk with the Result
             courseData[courseName].logs = mergedLogs;
 
-            // Don't save tombstones here as they are pending deletion confirmations,
-            // but do save the logs.
+            // Clean up local tombstones that are now confirmed by server
+            serverTombstones.forEach(id => courseData[courseName].tombstones.delete(id));
+
             saveCourseToLocalStorage(courseName);
 
         } catch (err) {
             console.warn(`Background fetch failed for ${courseName}. Keeping local data.`, err);
-            // We swallow the error here because we have local data to show. 
-            // This is "Offline Mode" behavior.
         }
     }
 }
@@ -7303,18 +7316,20 @@ async function syncLogsWithSheet() {
 
 async function syncViaBackendAPI() {
     try {
-
         const logsToSync = courseData[currentCourse]?.logs || [];
+        // Capture tombstones to send to server
+        const tombstonesToSync = Array.from(courseData[currentCourse]?.tombstones || []);
 
-        if (logsToSync.length === 0) {
-            console.log('No logs to sync');
+        if (logsToSync.length === 0 && tombstonesToSync.length === 0) {
+            console.log('No logs or tombstones to sync');
             return;
         }
 
-        // Call backend to sync logs
+        // Call backend to sync logs AND tombstones
         const result = await callWebApp('syncCourseLogs_Admin', {
             courseName: currentCourse,
-            logs: logsToSync
+            logs: logsToSync,
+            tombstones: tombstonesToSync
         }, 'POST');
 
         if (result && result.result === 'success') {
