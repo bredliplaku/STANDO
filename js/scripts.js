@@ -7164,104 +7164,120 @@ function toSheetRow(log) {
 async function loadAndMergeCourseData(courseName) {
     if (!courseName) return;
 
-    // 1. Load from Disk
     const localData = await loadCourseFromLocalStorage(courseName);
 
+    // Initial render with local data
     courseData[courseName] = {
         logs: localData.logs || [],
         tombstones: localData.tombstones || new Set()
     };
 
-    // 2. Fetch and Merge
     if (isOnline && isSignedIn) {
         try {
             let serverLogs = [];
-            let serverTombstones = new Set(); // New Set for server deletions
+            // Map<LogID, DeletedAtTimestamp>
+            let serverTombstoneMap = new Map();
 
             if (isAdmin) {
-                // Admin gets { logs: [], tombstones: [] }
                 const response = await callWebApp('getCourseLogs_Admin', { courseName: courseName }, 'POST');
 
-                // Handle new format
                 if (response.logs) {
                     serverLogs = response.logs;
-                    if (response.tombstones) {
-                        serverTombstones = new Set(response.tombstones);
+
+                    // Parse the new {id, deletedAt} object format
+                    if (response.tombstones && Array.isArray(response.tombstones)) {
+                        response.tombstones.forEach(t => {
+                            // If t is an object {id, deletedAt}, map it. 
+                            // If it's a string (legacy), default timestamp to now (safer to assume recent deletion)
+                            if (typeof t === 'object') {
+                                serverTombstoneMap.set(t.id, t.deletedAt);
+                            } else {
+                                serverTombstoneMap.set(t, Date.now());
+                            }
+                        });
                     }
                 } else {
-                    // Fallback for old format (just array)
                     serverLogs = response;
                 }
             } else {
-                // Students just get logs (they can't delete anyway)
                 serverLogs = await callWebApp('getStudentLogs', { courseName: courseName }, 'POST');
             }
 
-            // 3. Strict Merge with SERVER TOMBSTONES
-            // This ensures if Server says "ID 123 is deleted", Local deletes it too.
-            const mergedLogs = mergeLogs(serverLogs, localData.logs, localData.tombstones, serverTombstones);
+            // Merge using the Map
+            const mergedLogs = mergeLogs(serverLogs, localData.logs, localData.tombstones, serverTombstoneMap);
 
             courseData[courseName].logs = mergedLogs;
 
-            // Clean up local tombstones that are now confirmed by server
-            serverTombstones.forEach(id => courseData[courseName].tombstones.delete(id));
+            // Clean up local tombstones. 
+            // If the server confirms deletion (via tombstoneMap), we can stop tracking it locally.
+            serverTombstoneMap.forEach((_, id) => courseData[courseName].tombstones.delete(id));
 
             saveCourseToLocalStorage(courseName);
 
         } catch (err) {
-            console.warn(`Background fetch failed for ${courseName}. Keeping local data.`, err);
+            console.warn(`Background fetch failed for ${courseName}.`, err);
         }
     }
 }
 
 
 /**
-* Merges Server and Local logs.
-* RULE 1: Server is the baseline truth.
-* RULE 2: Local only overrides Server if Local Version is STRICTLY GREATER.
-* RULE 3: Logs found locally but not on server are preserved (assumed new offline scans).
+* Merges Server and Local logs using CRDT logic (Time-based Tombstones).
 */
-function mergeLogs(serverLogs, localLogs, localTombstones = new Set(), serverTombstones = new Set()) {
+function mergeLogs(serverLogs, localLogs, localTombstones, serverTombstonesMap) {
     serverLogs = Array.isArray(serverLogs) ? serverLogs : [];
     localLogs = Array.isArray(localLogs) ? localLogs : [];
 
-    const combinedMap = new Map();
-    const deletedIds = new Set([...localTombstones, ...serverTombstones]);
+    // serverTombstonesMap is now expected to be a Map: ID -> Timestamp
+    // localTombstones is a Set of IDs (pending deletions locally)
 
-    // 1. Load Server Logs First (The Baseline)
+    const combinedMap = new Map();
+
+    // Helper to check if a log is "Dead"
+    const isDead = (log) => {
+        // 1. Is it pending deletion locally?
+        if (localTombstones.has(log.id)) return true;
+
+        // 2. Is it deleted on server? Check Timing.
+        // If Server Tombstone exists AND Log is OLDER than Tombstone -> Dead.
+        if (serverTombstonesMap.has(log.id)) {
+            const deletedAt = serverTombstonesMap.get(log.id);
+            const logTime = log.updatedAt || 0;
+            if (logTime < deletedAt) return true;
+        }
+        return false;
+    };
+
+    // 1. Process Server Logs (The Truth)
     serverLogs.forEach(log => {
-        if (!deletedIds.has(log.id)) {
+        if (!isDead(log)) {
             combinedMap.set(log.id, log);
         }
     });
 
-    // 2. Merge Local Logs
+    // 2. Process Local Logs (The Potential Updates)
     localLogs.forEach(localLog => {
-        if (deletedIds.has(localLog.id)) return;
+        if (isDead(localLog)) return;
 
         const serverLog = combinedMap.get(localLog.id);
 
         if (!serverLog) {
-            // Case A: Log exists locally but not on server.
-            // Assumption: It is a new scan made while offline. Keep it.
+            // Log exists locally but not on server.
+            // Since we already checked isDead(), we know it wasn't deleted on the server.
+            // Therefore, it must be a NEW offline creation. Keep it.
             combinedMap.set(localLog.id, localLog);
         } else {
-            // Case B: Log exists in both. Compare Versions.
+            // Log exists in both. Standard conflict resolution.
             const localVer = Number(localLog.version || 0);
             const serverVer = Number(serverLog.version || 0);
 
             if (localVer > serverVer) {
-                // Local is newer (user edited it here). Update the map.
                 combinedMap.set(localLog.id, localLog);
             } else if (localVer === serverVer) {
-                // Versions equal. Use local if it has a newer timestamp (tie-breaker), 
-                // otherwise trust server to ensure consistency.
                 if ((localLog.updatedAt || 0) > (serverLog.updatedAt || 0)) {
                     combinedMap.set(localLog.id, localLog);
                 }
             }
-            // Case C: Server version is higher. 
-            // We do NOTHING. We keep the Server log. This prevents regression.
         }
     });
 
