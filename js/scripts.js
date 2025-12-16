@@ -1033,8 +1033,18 @@ function clearAllAppData() {
         localStorage.removeItem(key);
     });
 
-    // Refresh the page to apply the changes.
-    window.location.reload();
+    // Trigger exit animation if cat is visible
+    const cat = document.getElementById('cat-companion');
+    if (cat && cat.classList.contains('visible')) {
+        cat.classList.remove('visible');
+        // Wait for animation (500ms) before reloading
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    } else {
+        // Refresh immediately if no cat
+        window.location.reload();
+    }
 }
 
 /**
