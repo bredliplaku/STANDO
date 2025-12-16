@@ -1491,6 +1491,16 @@ function setupEventListeners() {
 
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleSignoutClick);
+        logoutBtn.addEventListener('click', () => {
+            const cat = document.getElementById('cat-companion');
+            if (cat) {
+                cat.classList.remove('visible');
+                // Wait for transition to finish
+                setTimeout(() => {
+                    cat.style.display = 'none';
+                }, 400);
+            }
+        });
     }
 
     // Table header sort listeners
@@ -3787,6 +3797,15 @@ async function initGoogleApi() {
 */
 async function onSuccessfulAuth(isRestore = false) {
     isSignedIn = true;
+
+    // Show cat companion with transition
+    const cat = document.getElementById('cat-companion');
+    if (cat) {
+        cat.style.display = 'block';
+        // Force reflow
+        void cat.offsetHeight;
+        cat.classList.add('visible');
+    }
 
     try {
         // --- PHASE 1: CRITICAL BOOT ---
@@ -10387,7 +10406,7 @@ function setupCatCompanion() {
         "System Status: Purring. Attendance Status: Pending.",
         "If I fits, I sits. If you scans, you stands.",
         "Don't mind me, just debugging your life choices.",
-        "I accept payment in tuna or verified timestamps. 🐟",
+        "I accept payment in tuna or verified attendance. 🐟",
 
         // --- 🏫 Attendance & Scanning (The Core Function) ---
         "Did you scan your ID? Or are we pretending to be present today?",
