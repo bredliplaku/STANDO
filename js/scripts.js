@@ -53,6 +53,8 @@ let syncAttempts = 0;
 const MAX_SYNC_ATTEMPTS = 5;
 const SYNC_INTERVAL = 60000; // Auto-sync every 60 seconds
 const SYNC_RETRY_INTERVAL = 15000; // Retry failed syncs after 15 seconds
+const ADMIN_REFRESH_INTERVAL = 30000; // Auto-refresh admin dashboard every 30 seconds
+let adminAutoRefreshInterval = null;
 let activeRequests = new Map(); // Track active requests per course
 let studentLogCache = {};
 let currentRequestId = 0; // Global request counter
@@ -70,6 +72,11 @@ let lastCheckedLogId = null; // For Shift+Click logic
 let activeSessionCategory = null;
 let activeSessionGroup = null;
 let currentCourseSections = {}; // Parsed structure
+
+// Pagination State
+let logsCurrentPage = 1;
+let dbCurrentPage = 1;
+const ITEMS_PER_PAGE = 25; // Number of items per page
 
 // DOM Elements
 let tabs, tabContents, importExcelBtn, excelInput, filterInput, sortSelect,
@@ -3050,6 +3057,25 @@ function setupAutoSync() {
             }
         }, 2000);
     });
+
+    // --- Admin Dashboard Auto-Refresh ---
+    // Start auto-refresh for admin views after a short delay
+    setTimeout(() => {
+        if (isAdmin && isSignedIn) {
+            startAdminAutoRefresh();
+        }
+    }, 5000); // Wait 5s after init to start polling
+
+    // Pause/resume auto-refresh when tab visibility changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopAdminAutoRefresh();
+        } else if (isAdmin && isSignedIn) {
+            // Refresh immediately when tab becomes visible, then restart interval
+            silentRefreshAdminViews();
+            startAdminAutoRefresh();
+        }
+    });
 }
 
 // Auto-sync function with retry logic
@@ -3659,6 +3685,14 @@ function init() {
                 requestWakeLock();
             }
         });
+
+        // AMOLED Burn-in Prevention: Subtle pixel shifting every 2 minutes
+        // Shifts content by ±2 pixels - imperceptible to users but prevents static burn-in
+        setInterval(() => {
+            const shiftX = Math.floor(Math.random() * 5) - 2; // -2 to +2 pixels
+            const shiftY = Math.floor(Math.random() * 5) - 2;
+            document.body.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+        }, 120000); // Every 2 minutes
     }
 }
 
@@ -5036,6 +5070,63 @@ async function refreshAdminViews() {
     } catch (e) {
         console.error("Error refreshing admin views", e);
         updateAdminDashboardBar(0, 0, false);
+    }
+}
+
+/**
+ * Silent refresh - updates admin dashboard without showing loading spinner.
+ * Used for background polling to avoid disrupting the user.
+ */
+async function silentRefreshAdminViews() {
+    if (!isAdmin || !isOnline || !isSignedIn) return;
+
+    try {
+        const [registrations, absences] = await Promise.all([
+            callWebApp('getPendingRegistrations', {}, 'POST'),
+            callWebApp('getPendingAbsences', {}, 'POST')
+        ]);
+
+        const regCount = isGlobalAdmin ? registrations.length : 0;
+        const absCount = absences.length;
+        const newTotal = regCount + absCount;
+
+        // Only update UI if counts changed
+        if (newTotal !== globalNotificationCount) {
+            globalNotificationCount = newTotal;
+            updatePageTitle();
+            updateAdminDashboardBar(absCount, registrations.length, false);
+            renderRegistrationsTable(registrations);
+            renderAbsencesTable(absences);
+
+            // Notify user if new requests came in
+            if (newTotal > 0) {
+                console.log(`[Auto-Refresh] Updated: ${absCount} absences, ${regCount} registrations`);
+            }
+        }
+    } catch (e) {
+        console.warn("Silent admin refresh failed:", e.message);
+    }
+}
+
+/**
+ * Starts the auto-refresh interval for admin dashboard.
+ */
+function startAdminAutoRefresh() {
+    if (adminAutoRefreshInterval) return; // Already running
+    if (!isAdmin) return;
+
+    console.log("[Admin Auto-Refresh] Started (every 30s)");
+    adminAutoRefreshInterval = setInterval(silentRefreshAdminViews, ADMIN_REFRESH_INTERVAL);
+}
+
+/**
+ * Stops the auto-refresh interval for admin dashboard.
+ */
+function stopAdminAutoRefresh() {
+    if (adminAutoRefreshInterval) {
+        clearInterval(adminAutoRefreshInterval);
+        adminAutoRefreshInterval = null;
+        console.log("[Admin Auto-Refresh] Stopped");
     }
 }
 
@@ -9326,6 +9417,22 @@ function updateLogsList() {
         return 0;
     });
 
+    // --- PAGINATION LOGIC ---
+    const totalPages = Math.ceil(result.length / ITEMS_PER_PAGE);
+    if (logsCurrentPage > totalPages) logsCurrentPage = Math.max(1, totalPages);
+
+    const startIndex = (logsCurrentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedResult = result.slice(startIndex, endIndex);
+
+    // Update count display to show pagination info
+    if (result.length > ITEMS_PER_PAGE) {
+        filteredCount.textContent = `${startIndex + 1}-${Math.min(endIndex, result.length)} of ${result.length}`;
+    }
+
+    // Render pagination controls
+    renderLogsPagination(logsCurrentPage, totalPages);
+
     logsTbody.innerHTML = '';
 
     if (result.length === 0) {
@@ -9342,9 +9449,12 @@ function updateLogsList() {
         emptyLogs.style.display = 'none';
     }
 
+    // Use paginated result for rendering
+    const resultToRender = paginatedResult;
+
     let currentDay = null;
 
-    result.forEach((group) => {
+    resultToRender.forEach((group) => {
         if (showAdminFeatures && currentSort.startsWith('date')) {
             const thisDay = group.date;
             if (thisDay !== currentDay) {
@@ -9723,11 +9833,29 @@ function updateDatabaseList() {
         return multiplier * String(valA).localeCompare(String(valB));
     });
 
-    dbEntryCount.textContent = Object.keys(databaseMap).length;
-    emptyDatabase.style.display = Object.keys(databaseMap).length > 0 ? 'none' : 'block';
+    // --- PAGINATION LOGIC ---
+    const totalPages = Math.ceil(entries.length / ITEMS_PER_PAGE);
+    if (dbCurrentPage > totalPages) dbCurrentPage = Math.max(1, totalPages);
+
+    const startIndex = (dbCurrentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedEntries = entries.slice(startIndex, endIndex);
+
+    // Update count display
+    const totalCount = Object.keys(databaseMap).length;
+    if (entries.length > ITEMS_PER_PAGE) {
+        dbEntryCount.textContent = `${startIndex + 1}-${Math.min(endIndex, entries.length)} of ${entries.length}`;
+    } else {
+        dbEntryCount.textContent = totalCount;
+    }
+
+    // Render pagination controls
+    renderDbPagination(dbCurrentPage, totalPages);
+
+    emptyDatabase.style.display = totalCount > 0 ? 'none' : 'block';
     databaseTbody.innerHTML = '';
 
-    entries.forEach(([dbKey, data]) => {
+    paginatedEntries.forEach(([dbKey, data]) => {
         const row = document.createElement('tr');
         // Use the new .uid-badge class here
         const uidBadges = data.uids.map(uid => `<span class="uid-badge">${escapeHtml(uid)}</span>`).join(' ');
@@ -10326,6 +10454,118 @@ function showNotification(type, title, message, duration = 5000) {
     }
 }
 
+// --- PAGINATION HELPER FUNCTIONS ---
+
+/**
+ * Renders pagination controls for the logs table.
+ */
+function renderLogsPagination(currentPage, totalPages) {
+    const container = document.getElementById('logs-pagination');
+    const pageNumbers = document.getElementById('logs-page-numbers');
+    const prevBtn = document.getElementById('logs-prev-page');
+    const nextBtn = document.getElementById('logs-next-page');
+
+    if (!container || totalPages <= 1) {
+        if (container) container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'flex';
+    pageNumbers.innerHTML = '';
+
+    // Generate page buttons
+    const pages = generatePageNumbers(currentPage, totalPages);
+    pages.forEach(page => {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn' + (page === currentPage ? ' active' : '') + (page === '...' ? ' ellipsis' : '');
+        btn.textContent = page;
+        if (page !== '...') {
+            btn.onclick = () => {
+                logsCurrentPage = parseInt(page);
+                updateLogsList();
+            };
+        }
+        pageNumbers.appendChild(btn);
+    });
+
+    // Update prev/next button states
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+    prevBtn.onclick = () => { logsCurrentPage--; updateLogsList(); };
+    nextBtn.onclick = () => { logsCurrentPage++; updateLogsList(); };
+}
+
+/**
+ * Renders pagination controls for the database table.
+ */
+function renderDbPagination(currentPage, totalPages) {
+    const container = document.getElementById('db-pagination');
+    const pageNumbers = document.getElementById('db-page-numbers');
+    const prevBtn = document.getElementById('db-prev-page');
+    const nextBtn = document.getElementById('db-next-page');
+
+    if (!container || totalPages <= 1) {
+        if (container) container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'flex';
+    pageNumbers.innerHTML = '';
+
+    // Generate page buttons
+    const pages = generatePageNumbers(currentPage, totalPages);
+    pages.forEach(page => {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn' + (page === currentPage ? ' active' : '') + (page === '...' ? ' ellipsis' : '');
+        btn.textContent = page;
+        if (page !== '...') {
+            btn.onclick = () => {
+                dbCurrentPage = parseInt(page);
+                updateDatabaseList();
+            };
+        }
+        pageNumbers.appendChild(btn);
+    });
+
+    // Update prev/next button states
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+    prevBtn.onclick = () => { dbCurrentPage--; updateDatabaseList(); };
+    nextBtn.onclick = () => { dbCurrentPage++; updateDatabaseList(); };
+}
+
+/**
+ * Generates an array of page numbers to display, with ellipsis for long ranges.
+ * e.g., [1, 2, 3, '...', 10] or [1, '...', 5, 6, 7, '...', 20]
+ */
+function generatePageNumbers(current, total) {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    const pages = [];
+    pages.push(1);
+
+    if (current > 3) {
+        pages.push('...');
+    }
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+        if (!pages.includes(i)) pages.push(i);
+    }
+
+    if (current < total - 2) {
+        pages.push('...');
+    }
+
+    if (!pages.includes(total)) pages.push(total);
+
+    return pages;
+}
+
 function populateCourseButtons() {
     const courseButtonsContainer = document.getElementById('course-buttons-container');
     if (!courseButtonsContainer) return;
@@ -10370,9 +10610,13 @@ function selectCourseButton(course) {
     // Give instant visual feedback by updating classes immediately
     document.querySelectorAll('.course-button').forEach(btn => {
         btn.classList.remove('active');
+        btn.classList.remove('selecting');
         // Check inner text to find the correct button to activate
         if (btn.innerText.trim().replace(/\s+/g, '_') === course) {
+            btn.classList.add('selecting'); // Add selecting feedback
             btn.classList.add('active');
+            // Remove selecting class after a short delay
+            setTimeout(() => btn.classList.remove('selecting'), 150);
         }
     });
 

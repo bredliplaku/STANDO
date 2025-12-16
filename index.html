@@ -7,16 +7,22 @@
     <title>STANDO</title>
     <link rel="icon" href="/favicon.png">
     <meta name="theme-color" content="#f4f4f4" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Google API client library -->
-    <script src="https://apis.google.com/js/api.js" async defer></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Preconnect to external domains for faster loading -->
+    <link rel="dns-prefetch" href="https://apis.google.com">
+    <link rel="dns-prefetch" href="https://accounts.google.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <!-- External Resources -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" rel="stylesheet">
     <link
         href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,slnt,wdth,wght,GRAD,ROND@6..144,-10..0,25..151,1..1000,0..100,0..100&display=swap"
         rel="stylesheet">
+    <!-- Load XLSX library with defer since it's not needed immediately -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <!-- Google API client library -->
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="css/styles.css">
 
 </head>
@@ -268,6 +274,17 @@
                         </table>
                     </div>
 
+                    <!-- Pagination Controls for Logs -->
+                    <div id="logs-pagination" class="pagination-controls" style="display: none;">
+                        <button id="logs-prev-page" class="btn-icon pagination-btn" title="Previous Page">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <div id="logs-page-numbers" class="page-numbers"></div>
+                        <button id="logs-next-page" class="btn-icon pagination-btn" title="Next Page">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+
                     <div id="empty-logs" class="empty-logs">
                         <i class="fa-solid fa-ghost" style="font-size: 3em; color: #ccc; margin-bottom: 10px;"></i>
                         <p style="font-size: 1.1em; margin-bottom: 5px;">No attendance records found.</p>
@@ -348,12 +365,23 @@
                                 started.</p>
                         </div>
                     </div>
+
+                    <!-- Pagination Controls for Database -->
+                    <div id="db-pagination" class="pagination-controls" style="display: none;">
+                        <button id="db-prev-page" class="btn-icon pagination-btn" title="Previous Page">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <div id="db-page-numbers" class="page-numbers"></div>
+                        <button id="db-next-page" class="btn-icon pagination-btn" title="Next Page">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         <footer class="footer">
             <img src="https://raw.githubusercontent.com/bredliplaku/STANDO/refs/heads/main/miscellaneous/swimmingbrain.png"
-                alt="Swimming Brain Logo" class="floating-logo"
+                alt="Swimming Brain Logo" class="floating-logo" loading="lazy"
                 style="width: 80px; margin-top: 0; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">
 
             <div class="social-links">
