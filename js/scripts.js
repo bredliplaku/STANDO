@@ -97,6 +97,21 @@ function checkLoadingCompletion() {
     }
 }
 
+// --- Dialog Scroll Fix Helpers ---
+let dialogScrollY = 0;
+
+function openDialogMode() {
+    dialogScrollY = window.scrollY;
+    document.body.classList.add('dialog-open');
+    document.body.style.top = `-${dialogScrollY}px`;
+}
+
+function closeDialogMode() {
+    document.body.classList.remove('dialog-open');
+    document.body.style.top = '';
+    window.scrollTo(0, dialogScrollY);
+}
+
 /**
 * Helper to get/create the persistent Device ID
 */
@@ -304,7 +319,7 @@ function showStaffEditorDialog(staffData = null) {
             showNotification('success', 'Success', `Staff member ${isEdit ? 'updated' : 'added'}.`);
 
             document.querySelectorAll('.dialog-backdrop').forEach(el => el.remove());
-            document.body.style.overflow = '';
+            closeDialogMode();
             showGlobalSettingsDialog();
 
             setTimeout(() => {
@@ -825,14 +840,14 @@ function setupAbsenceHistory() {
 
 
 async function showAbsenceHistoryDialog() {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
     const dialog = document.createElement('div');
     dialog.className = 'dialog';
     dialog.style.maxWidth = '900px';
-    dialog.style.height = '85vh';
+    dialog.style.maxHeight = '85vh';
     dialog.setAttribute('role', 'dialog');
 
     dialog.innerHTML = `
@@ -843,7 +858,7 @@ async function showAbsenceHistoryDialog() {
     <div class="dialog-content" style="overflow-y:auto; padding-top:0;">
         
         <div class="filter-container" style="position:sticky; top:0; background:var(--card-background); z-index:10; padding:10px 0; border-bottom:1px solid #eee;">
-            <input type="text" id="hist-search" class="filter-input" placeholder="Search student, course..." style="flex-grow:1;">
+            <input type="text" id="hist-search" class="filter-input" placeholder="Search..." style="flex-grow:1;">
             <select id="hist-filter-status" class="sort-dropdown">
                 <option value="All">All</option>
                 <option value="Pending">Pending</option>
@@ -861,7 +876,7 @@ async function showAbsenceHistoryDialog() {
     document.body.appendChild(dialogBackdrop);
 
     // Close Logic
-    const close = () => { document.body.removeChild(dialogBackdrop); document.body.style.overflow = ''; };
+    const close = () => { document.body.removeChild(dialogBackdrop); closeDialogMode(); };
     dialog.querySelector('#close-hist-btn').onclick = close;
 
     // Fetch Data
@@ -1558,7 +1573,7 @@ function setupEventListeners() {
 
 // --- 3. Non-Global Admin Profile & Settings ---
 function showGlobalSettingsDialog() {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
     const dialog = document.createElement('div');
@@ -1886,7 +1901,7 @@ function showGlobalSettingsDialog() {
                 showNotification('success', 'Registered', 'Device is now trusted.');
 
                 document.querySelectorAll('.dialog-backdrop').forEach(el => el.remove());
-                document.body.style.overflow = '';
+                closeDialogMode();
 
                 showGlobalSettingsDialog();
 
@@ -1907,7 +1922,7 @@ function showGlobalSettingsDialog() {
 
     const close = () => {
         document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
     document.getElementById('close-settings-btn').onclick = close;
 }
@@ -1960,7 +1975,7 @@ window.deleteTrustedDevice = (rowIndex, name) => {
             callWebApp('deleteDevice_Admin', { rowIndex }, 'POST')
                 .then(() => {
                     document.querySelectorAll('.dialog-backdrop').forEach(el => el.remove());
-                    document.body.style.overflow = '';
+                    closeDialogMode();
 
                     showGlobalSettingsDialog();
 
@@ -1986,7 +2001,7 @@ window.deleteStaffKey = (rowIndex, name) => {
             callWebApp('manageStaff_Admin', { actionType: 'delete', rowIndex }, 'POST')
                 .then(() => {
                     document.querySelectorAll('.dialog-backdrop').forEach(el => el.remove());
-                    document.body.style.overflow = '';
+                    closeDialogMode();
 
                     showGlobalSettingsDialog();
 
@@ -2373,7 +2388,7 @@ function showCourseEditorDialog(courseName, courseData = null) {
                 showNotification('success', 'Saved', 'Course updated.');
                 close();
                 document.querySelectorAll('.dialog-backdrop').forEach(el => el.remove());
-                document.body.style.overflow = '';
+                closeDialogMode();
                 if (isGlobalAdmin) showGlobalSettingsDialog();
                 else showAdminProfileDialog();
             } else { throw new Error(res.message); }
@@ -2400,7 +2415,7 @@ function showCourseEditorDialog(courseName, courseData = null) {
 
                     close();
                     document.querySelectorAll('.dialog-backdrop').forEach(el => el.remove());
-                    document.body.style.overflow = '';
+                    closeDialogMode();
 
                     showGlobalSettingsDialog();
 
@@ -2417,7 +2432,7 @@ function showCourseEditorDialog(courseName, courseData = null) {
 
 // --- 3. Non-Global Admin Profile & Settings ---
 function showAdminProfileDialog() {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -2476,7 +2491,7 @@ function showAdminProfileDialog() {
 
     const close = () => {
         document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
     dialog.querySelector('#close-profile-btn').onclick = close;
 
@@ -3150,7 +3165,7 @@ async function showDirectEisExportDialog(prefilledDateStr = null) {
         return;
     }
 
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
     const dialog = document.createElement('div');
@@ -3238,12 +3253,12 @@ async function showDirectEisExportDialog(prefilledDateStr = null) {
     try { await fetchCourseInfo(); } catch (e) { }
     const eisId = courseIDMap[currentCourse.trim()] || courseIDMap[currentCourse];
     if (!eisId) {
-        document.body.removeChild(dialogBackdrop); document.body.style.overflow = '';
+        document.body.removeChild(dialogBackdrop); closeDialogMode();
         showNotification('error', 'EIS ID Missing', `ID for "${currentCourse}" is not set.`); return;
     }
     document.getElementById('export-course-display').value = `${formattedCourseName} (ID: ${eisId})`;
 
-    const closeDialog = () => { document.body.removeChild(dialogBackdrop); document.body.style.overflow = ''; };
+    const closeDialog = () => { document.body.removeChild(dialogBackdrop); closeDialogMode(); };
     const courseMetadata = getCourseMetadata(currentCourse);
     const rawSections = courseMetadata?.availableSections || '';
     const sectionsMap = parseAvailableSections(rawSections);
@@ -4172,7 +4187,7 @@ async function fetchUserInfo() {
 function showRegisterUIDDialog() {
     if (!isSignedIn || isAdmin || !currentUser) return;
 
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -4214,7 +4229,7 @@ function showRegisterUIDDialog() {
     const closeDialog = () => {
         if (registrationNfcController) registrationNfcController.abort();
         document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     const checkSubmitButton = () => {
@@ -4289,7 +4304,7 @@ function showRegisterUIDDialog() {
 * Show registration dialog with pre-filled UID (for Admin scanning unknown card)
 */
 function showRegisterUIDDialogWithPrefill(prefillUid) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -4338,7 +4353,7 @@ function showRegisterUIDDialogWithPrefill(prefillUid) {
 
     const closeDialog = () => {
         document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     document.getElementById('cancel-register-btn').addEventListener('click', closeDialog);
@@ -4455,7 +4470,7 @@ function findDuplicateInDatabase(entry) {
  * This version modifies the local databaseMap directly.
  */
 function showDuplicateWarningForNewEntry(newData, duplicates, onCompleteCallback) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const existing = duplicates[0];
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -4551,7 +4566,7 @@ function showDuplicateWarningForNewEntry(newData, duplicates, onCompleteCallback
 
     const closeDialog = () => {
         document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
     const addAnywayBtn = document.getElementById('add-anyway-btn');
     const applyBtn = document.getElementById('apply-btn');
@@ -4632,7 +4647,7 @@ function attachRegistrationRowListeners() {
  * Shows a dialog with all details for a registration request.
  */
 function showRegistrationDetailsDialog(data) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -4690,7 +4705,7 @@ function showRegistrationDetailsDialog(data) {
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     // --- Wire up buttons ---
@@ -4798,7 +4813,7 @@ function showApproveDialog(registration) {
  * Step 2: Shows the final editable approval dialog for non-duplicate entries.
  */
 function showFinalApprovalDialog(registration) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
     const dialog = document.createElement('div');
@@ -4835,7 +4850,7 @@ function showFinalApprovalDialog(registration) {
     dialogBackdrop.appendChild(dialog);
     document.body.appendChild(dialogBackdrop);
 
-    const closeDialog = () => { document.body.removeChild(dialogBackdrop); document.body.style.overflow = ''; };
+    const closeDialog = () => { document.body.removeChild(dialogBackdrop); closeDialogMode(); };
     document.getElementById('cancel-approve-btn').addEventListener('click', closeDialog);
 
     const confirmBtn = document.getElementById('confirm-approve-btn');
@@ -4867,7 +4882,7 @@ function showFinalApprovalDialog(registration) {
 * Creates the special dialog for handling duplicate registrations.
 */
 function showDuplicateWarningDialog(newData, duplicates) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const existing = duplicates[0];
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -4965,7 +4980,7 @@ function showDuplicateWarningDialog(newData, duplicates) {
 
     const closeDialog = () => {
         document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
     const addAnywayBtn = document.getElementById('add-anyway-btn');
     const replaceBtn = document.getElementById('replace-btn');
@@ -5267,7 +5282,7 @@ function attachAbsenceActionListeners() {
 * Used by both the Pending list and History list.
 */
 function showPermissionDetailsDialog(data, isReadOnly = false) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -5350,7 +5365,7 @@ function showPermissionDetailsDialog(data, isReadOnly = false) {
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     document.getElementById('close-details-btn').addEventListener('click', closeDialog);
@@ -5386,7 +5401,7 @@ function showRequestPermissionDialog() {
     const maxDateStr = getLocalDateString(addBusinessDays(today, 10));
     const todayStr = getLocalDateString(today);
 
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
     const dialog = document.createElement('div');
@@ -5397,8 +5412,11 @@ function showRequestPermissionDialog() {
         `<option value="${escapeHtml(courseName)}">${courseName.replace(/_/g, ' ')}</option>`
     ).join('');
 
-    const hoursList = ['8:40', '9:40', '10:40', '11:40', '12:40', '13:40', '14:40', '15:40', '16:00', '17:00', '18:00', '19:00'];
-    const hourButtons = hoursList.map(h => `<button type="button" class="toggle-button" data-value="${h}">${h}</button>`).join('');
+    const hoursList = ['8:40–9:30', '9:40–10:30', '10:40–11:30', '11:40–12:30', '12:40–13:30', '13:40–14:30', '14:40–15:30', '15:40–16:30', '16:00–16:50', '17:00–17:50', '18:00–18:50', '19:00–19:50'];
+    const hourButtons = hoursList.map(h => `<button type="button" class="toggle-button" data-value="${h}" style="font-family:'Google Sans Flex', sans-serif; overflow:visible; text-overflow:clip; font-size:0.8em; padding:10px 2px;">${h}</button>`).join('');
+
+
+
 
     dialog.innerHTML = `
 <h3 class="dialog-title"><i class="fa-solid fa-hand-point-up"></i> Request for Permission</h3>
@@ -5430,7 +5448,7 @@ function showRequestPermissionDialog() {
     <div class="form-group required" style="align-items:flex-start;">
         <label class="dialog-label-fixed" style="margin-top:10px;"><i class="fa-regular fa-calendar-days"></i> Date</label>
         <div class="form-group-control">
-            <input type="date" id="request-date" class="form-control" value="${todayStr}" min="${minDateStr}" max="${maxDateStr}">
+            <input type="date" id="request-date" class="form-control" value="" min="${minDateStr}" max="${maxDateStr}" required>
             <small style="color:#666; font-size:0.8em; display:block; margin-top:4px;">
                 <i class="fa-solid fa-circle-info"></i> Select the date you were (or will be) absent.
             </small>
@@ -5439,10 +5457,11 @@ function showRequestPermissionDialog() {
 
     <div class="form-group required" style="align-items:flex-start;">
         <label class="dialog-label-fixed" style="margin-top:10px;"><i class="fa-regular fa-clock"></i> Hours</label>
-        <div id="request-hours-group" class="toggle-button-group form-group-control" style="flex-wrap: wrap;">
+        <div id="request-hours-group" class="form-group-control" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
             ${hourButtons}
         </div>
     </div>
+
 
     <div class="form-section-title">Reason</div>
 
@@ -5488,6 +5507,15 @@ function showRequestPermissionDialog() {
         <textarea id="request-explanation" class="form-control form-group-control" rows="3"></textarea>
     </div>
 
+    <div class="form-section-title" style="margin-top:20px;">Verification</div>
+    <div class="form-group" style="align-items:flex-start;">
+        <label class="dialog-label-fixed" style="margin-top:10px;"><i class="fa-solid fa-calculator"></i> Solve</label>
+        <div class="form-group-control">
+            <div id="captcha-question" style="font-size:1.1em; font-weight:600; margin-bottom:10px; font-family:monospace; background:var(--card-background); color:var(--text-color); padding:10px 15px; border-radius:8px; text-align:center; border:1px solid var(--border-color, #ddd);"></div>
+            <div id="captcha-choices" class="course-buttons-container" style="margin-bottom:0; gap:8px; flex-wrap:nowrap;"></div>
+        </div>
+    </div>
+
 </div>
 <div class="dialog-actions">
     <button id="cancel-request-btn" class="btn-red"><i class="fa-solid fa-xmark"></i> Cancel</button>
@@ -5512,6 +5540,103 @@ function showRequestPermissionDialog() {
     const hoursGroup = document.getElementById('request-hours-group');
 
     let selectedReason = null;
+    let captchaAnswer = null;
+    let captchaSolved = false;
+
+    // --- CAPTCHA LOGIC ---
+    function generateCaptcha() {
+        captchaSolved = false;
+        const captchaChoices = document.getElementById('captcha-choices');
+        const captchaQuestion = document.getElementById('captcha-question');
+
+        // Generate complex math expression with random templates
+        const ops = ['+', '−', '×'];
+        const getOp = () => ops[Math.floor(Math.random() * ops.length)];
+        const getNum = (max = 10) => Math.floor(Math.random() * max) + 1;
+        const toJs = (op) => op === '−' ? '-' : op === '×' ? '*' : '+';
+
+        // Random numbers
+        const a = getNum(12), b = getNum(10), c = getNum(8), d = getNum(6), e = getNum(5);
+        const op1 = getOp(), op2 = getOp(), op3 = getOp();
+
+        // Different expression templates
+        const templates = [
+            // (a op b) op c × d
+            { display: `(${a} ${op1} ${b}) ${op2} ${c} × ${d}`, js: `(${a} ${toJs(op1)} ${b}) ${toJs(op2)} ${c} * ${d}` },
+            // a × (b op c) op d
+            { display: `${a} × (${b} ${op1} ${c}) ${op2} ${d}`, js: `${a} * (${b} ${toJs(op1)} ${c}) ${toJs(op2)} ${d}` },
+            // a op b × (c op d)
+            { display: `${a} ${op1} ${b} × (${c} ${op2} ${d})`, js: `${a} ${toJs(op1)} ${b} * (${c} ${toJs(op2)} ${d})` },
+            // (a op b) × (c op d)
+            { display: `(${a} ${op1} ${b}) × (${c} ${op2} ${d})`, js: `(${a} ${toJs(op1)} ${b}) * (${c} ${toJs(op2)} ${d})` },
+            // a × b op c × d
+            { display: `${a} × ${b} ${op1} ${c} × ${d}`, js: `${a} * ${b} ${toJs(op1)} ${c} * ${d}` },
+            // (a op b op c) × d
+            { display: `(${a} ${op1} ${b} ${op2} ${c}) × ${d}`, js: `(${a} ${toJs(op1)} ${b} ${toJs(op2)} ${c}) * ${d}` },
+            // a op (b × c op d)
+            { display: `${a} ${op1} (${b} × ${c} ${op2} ${d})`, js: `${a} ${toJs(op1)} (${b} * ${c} ${toJs(op2)} ${d})` },
+        ];
+
+        const template = templates[Math.floor(Math.random() * templates.length)];
+        captchaAnswer = eval(template.js);
+        captchaQuestion.textContent = template.display + ' = ?';
+
+        // Generate choices: 1 correct + 3 wrong
+        const wrongAnswers = new Set();
+        while (wrongAnswers.size < 3) {
+            const offset = Math.floor(Math.random() * 40) - 20; // Random offset between -20 and +20
+            const wrong = captchaAnswer + offset;
+            if (wrong !== captchaAnswer && !wrongAnswers.has(wrong)) {
+                wrongAnswers.add(wrong);
+            }
+        }
+
+        const allChoices = [captchaAnswer, ...wrongAnswers];
+        // Shuffle
+        for (let i = allChoices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allChoices[i], allChoices[j]] = [allChoices[j], allChoices[i]];
+        }
+
+        captchaChoices.innerHTML = allChoices.map(val =>
+            `<div class="course-button captcha-choice" data-value="${val}" style="flex:1; min-width:0; padding:10px 8px; justify-content:center;">${val}</div>`
+        ).join('');
+
+
+        // Reset visual state
+        captchaChoices.querySelectorAll('.captcha-choice').forEach(btn => {
+            btn.classList.remove('active', 'correct', 'incorrect');
+        });
+    }
+
+    // Initialize captcha
+    generateCaptcha();
+
+    // Handle captcha choice clicks
+    document.getElementById('captcha-choices').addEventListener('click', (e) => {
+        const btn = e.target.closest('.captcha-choice');
+        if (!btn || captchaSolved) return;
+
+        const chosen = parseInt(btn.dataset.value, 10);
+
+        // Reset all buttons
+        document.querySelectorAll('.captcha-choice').forEach(b => b.classList.remove('active', 'correct', 'incorrect'));
+
+        if (chosen === captchaAnswer) {
+            btn.classList.add('active', 'correct');
+            btn.style.background = '#4caf50';
+            btn.style.color = '#fff';
+            captchaSolved = true;
+        } else {
+            btn.classList.add('incorrect');
+            btn.style.background = '#f44336';
+            btn.style.color = '#fff';
+            // Generate new captcha after wrong answer
+            setTimeout(() => {
+                generateCaptcha();
+            }, 800);
+        }
+    });
 
     // --- SESSION SELECTOR LOGIC ---
     courseSelect.addEventListener('change', () => {
@@ -5732,8 +5857,12 @@ function showRequestPermissionDialog() {
         // 1. General Validation
         let errors = [];
         if (!course) errors.push("Select a course.");
+        if (!date) errors.push("Select a date.");
         if (hours.length === 0) errors.push("Select at least one hour.");
         if (!selectedReason) errors.push("Select a reason.");
+        if (!captchaSolved) errors.push("Please solve the verification puzzle.");
+
+
 
         // 2. Reason Specific Validation
         if (selectedReason === 'Medical' && !file) errors.push("Medical report is required.");
@@ -5790,7 +5919,7 @@ function showRequestPermissionDialog() {
             const res = await callWebApp('submitAbsenceRequest', payload, 'POST');
             if (res.result === 'success') {
                 showNotification('success', 'Sent', 'Request submitted.');
-                document.body.removeChild(dialogBackdrop); document.body.style.overflow = '';
+                document.body.removeChild(dialogBackdrop); closeDialogMode();
             } else throw new Error(res.message);
         } catch (e) {
             showNotification('error', 'Error', e.message);
@@ -5799,13 +5928,13 @@ function showRequestPermissionDialog() {
     }
 
     document.getElementById('cancel-request-btn').onclick = () => {
-        document.body.removeChild(dialogBackdrop); document.body.style.overflow = '';
+        document.body.removeChild(dialogBackdrop); closeDialogMode();
     };
 }
 
 // --- Dialogs for Admin Actions ---
 function showApproveAbsenceDialog(data) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -5862,7 +5991,7 @@ function showApproveAbsenceDialog(data) {
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     const confirmBtn = dialog.querySelector('#confirm-approve-btn');
@@ -5891,7 +6020,8 @@ function showApproveAbsenceDialog(data) {
 
     confirmBtn.addEventListener('click', () => {
         const approvedHours = Array.from(hoursGroup.querySelectorAll('.toggle-button.active'))
-            .map(btn => btn.dataset.value);
+            .map(btn => btn.dataset.value.split('–')[0].split('-')[0]); // Extract only start time (before en-dash or hyphen)
+
 
         const message = messageArea.value; // Get the message (it can be empty)
 
@@ -5941,7 +6071,7 @@ function showApproveAbsenceDialog(data) {
 }
 
 function showRejectAbsenceDialog(data) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -5974,7 +6104,7 @@ function showRejectAbsenceDialog(data) {
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     const confirmBtn = dialog.querySelector('#confirm-reject-btn');
@@ -6040,7 +6170,7 @@ function showDeleteAbsenceDialog(data) {
  * Shows a custom dialog to reject a registration with a refined default message.
  */
 function showRejectDialog(registration) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
     const dialog = document.createElement('div');
@@ -6076,7 +6206,7 @@ function showRejectDialog(registration) {
     dialogBackdrop.appendChild(dialog);
     document.body.appendChild(dialogBackdrop);
 
-    const closeDialog = () => { document.body.removeChild(dialogBackdrop); document.body.style.overflow = ''; };
+    const closeDialog = () => { document.body.removeChild(dialogBackdrop); closeDialogMode(); };
     document.getElementById('cancel-reject-btn').addEventListener('click', closeDialog);
 
     const confirmBtn = document.getElementById('confirm-reject-btn');
@@ -7574,7 +7704,7 @@ function handleDbFilterChange() {
 function showAddEntryDialog() {
     if (!isAdmin) return;
 
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -7625,7 +7755,7 @@ function showAddEntryDialog() {
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     const uidInput = dialog.querySelector('#add-uid');
@@ -7745,7 +7875,7 @@ function showAddEntryDialog() {
 function editDatabaseEntry(dbKey) {
     if (!isAdmin || !databaseMap[dbKey]) return;
 
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -7844,7 +7974,7 @@ function editDatabaseEntry(dbKey) {
     const closeDialog = () => {
         if (activeNfcSession.controller) activeNfcSession.controller.abort();
         if (document.body.contains(dialogBackdrop)) document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     // 1. Fixed ID: cancel-request-btn
@@ -7972,7 +8102,7 @@ async function fetchCourseInfo() {
         * @param {string} message - The main text/HTML for the user.
         */
 function showAlertDialog(title, message) {
-    document.body.style.overflow = 'hidden'; // Prevent background scroll
+    openDialogMode(); // Prevent background scroll
     const existingDialog = document.querySelector('.dialog-backdrop');
     if (existingDialog) existingDialog.remove();
 
@@ -8002,7 +8132,7 @@ function showAlertDialog(title, message) {
             if (document.body.contains(dialogBackdrop)) {
                 document.body.removeChild(dialogBackdrop);
             }
-            document.body.style.overflow = ''; // Restore background scrolling
+            closeDialogMode(); // Restore background scrolling
         }, 300); // Match animation duration
     };
 
@@ -8017,7 +8147,7 @@ function showAlertDialog(title, message) {
 * @param {object} options - The options for the dialog.
 */
 function showPromptDialog({ title, message, initialValue = '', confirmText = 'Confirm', cancelText = 'Cancel', onConfirm }) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const existingDialog = document.querySelector('.dialog-backdrop');
     if (existingDialog) existingDialog.remove();
 
@@ -8054,7 +8184,7 @@ function showPromptDialog({ title, message, initialValue = '', confirmText = 'Co
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = ''; // Restore background scrolling
+        closeDialogMode(); // Restore background scrolling
     };
 
     const confirmAction = () => {
@@ -8080,7 +8210,7 @@ function showPromptDialog({ title, message, initialValue = '', confirmText = 'Co
 * @param {boolean} [options.isDestructive=false] - If true, the confirm button will be red.
 */
 function showConfirmationDialog({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', onConfirm, isDestructive = false }) {
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
     const existingDialog = document.querySelector('.dialog-backdrop');
     if (existingDialog) existingDialog.remove();
 
@@ -8113,7 +8243,7 @@ function showConfirmationDialog({ title, message, confirmText = 'Confirm', cance
         if (document.body.contains(dialogBackdrop)) {
             document.body.removeChild(dialogBackdrop);
         }
-        document.body.style.overflow = ''; // Restore background scrolling
+        closeDialogMode(); // Restore background scrolling
     };
 
     confirmBtn.addEventListener('click', () => {
@@ -8164,7 +8294,7 @@ function showAddLogEntryDialog() {
         return;
     }
 
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -8300,7 +8430,7 @@ function showAddLogEntryDialog() {
     searchInput.addEventListener('input', (e) => renderList(e.target.value));
     renderList();
 
-    const closeDialog = () => { document.body.removeChild(dialogBackdrop); document.body.style.overflow = ''; };
+    const closeDialog = () => { document.body.removeChild(dialogBackdrop); closeDialogMode(); };
     dialog.querySelector('#cancel-manual-btn').addEventListener('click', closeDialog);
 
     saveBtn.addEventListener('click', () => {
@@ -8355,7 +8485,7 @@ function isValidEmail(email) {
 */
 function showEditLogDialog(group) {
     if (!isAdmin) return;
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -8485,7 +8615,7 @@ function showEditLogDialog(group) {
         });
     });
 
-    const closeDialog = () => { if (document.body.contains(dialogBackdrop)) document.body.removeChild(dialogBackdrop); document.body.style.overflow = ''; };
+    const closeDialog = () => { if (document.body.contains(dialogBackdrop)) document.body.removeChild(dialogBackdrop); closeDialogMode(); };
 
     // Delete individual timestamp logic
     const logsToDelete = new Set();
@@ -9684,7 +9814,7 @@ function calculateWeekForDate(metadata, forDate) {
  */
 function showAddEntryFromLog(uid) {
     if (!isAdmin) return;
-    document.body.style.overflow = 'hidden';
+    openDialogMode();
 
     const dialogBackdrop = document.createElement('div');
     dialogBackdrop.className = 'dialog-backdrop';
@@ -9721,7 +9851,7 @@ function showAddEntryFromLog(uid) {
 
     const closeDialog = () => {
         if (document.body.contains(dialogBackdrop)) document.body.removeChild(dialogBackdrop);
-        document.body.style.overflow = '';
+        closeDialogMode();
     };
 
     dialog.querySelector('#cancel-add-log-btn').addEventListener('click', closeDialog);
@@ -10235,7 +10365,7 @@ async function handleNfcReading({ serialNumber }) {
         const nameEl = document.getElementById('scan-announcement-name');
         if (overlay && nameEl) {
             nameEl.textContent = name;
-            document.body.style.overflow = 'hidden';
+            openDialogMode();
             overlay.style.display = 'flex';
             void overlay.offsetWidth;
             overlay.classList.add('visible');
@@ -10245,7 +10375,7 @@ async function handleNfcReading({ serialNumber }) {
                 window.overlayTimeout = setTimeout(() => {
                     if (!overlay.classList.contains('visible')) {
                         overlay.style.display = 'none';
-                        document.body.style.overflow = '';
+                        closeDialogMode();
                     }
                 }, 150);
             };
