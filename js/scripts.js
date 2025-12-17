@@ -3689,32 +3689,14 @@ function init() {
             throw error;
         }
     };
-    // Automatically start scanning if supported, regardless of login state.
-    if (nfcSupported) {
-        startScanning();
-    }
+    // Auto-start disabled for security - user must manually start scanning
+    // if (nfcSupported) {
+    //     startScanning();
+    // }
 
-    // Browsers block sound until the user taps the screen.
-    // We listen for the first touch, play the sound silently, then pause it immediately.
-    // This "tricks" the browser into thinking sound is authorized for the session.
-    const unlockAudio = () => {
-        [successSound, errorSound].forEach(audio => {
-            // Attempt to play and immediately pause
-            const promise = audio.play();
-            if (promise !== undefined) {
-                promise.then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(e => console.log("Audio unlock waiting..."));
-            }
-        });
-        // Remove listeners once unlocked
-        document.body.removeEventListener('click', unlockAudio);
-        document.body.removeEventListener('touchstart', unlockAudio);
-    };
 
-    document.body.addEventListener('click', unlockAudio);
-    document.body.addEventListener('touchstart', unlockAudio);
+    // Audio unlock removed - was causing annoying sound on first interaction
+
     // This prevents the phone from sleeping and killing the sync process
     if ('wakeLock' in navigator) {
         let wakeLock = null;
@@ -3739,15 +3721,19 @@ function init() {
 
         // AMOLED Burn-in Prevention: Subtle pixel shifting every 2 minutes
         // Shifts content by ±2 pixels - imperceptible to users but prevents static burn-in
-        // Note: Paused when dialogs are open to prevent breaking position:fixed elements
-        setInterval(() => {
-            // Only apply shift when no dialogs are open
-            if (dialogOpenCount === 0) {
-                const shiftX = Math.floor(Math.random() * 5) - 2; // -2 to +2 pixels
-                const shiftY = Math.floor(Math.random() * 5) - 2;
-                document.body.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
-            }
-        }, 120000); // Every 2 minutes
+        // Note: Applied to main-container to avoid breaking position:fixed elements (notifications, cat)
+        const mainContainer = document.getElementById('main-container');
+        if (mainContainer) {
+            setInterval(() => {
+                // Only apply shift when no dialogs are open
+                if (dialogOpenCount === 0) {
+                    const shiftX = Math.floor(Math.random() * 5) - 2; // -2 to +2 pixels
+                    const shiftY = Math.floor(Math.random() * 5) - 2;
+                    mainContainer.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+                }
+            }, 120000); // Every 2 minutes
+        }
+
 
     }
 }

@@ -1835,10 +1835,10 @@
             gap: 10px;
             background-color: var(--primary-color);
             color: var(--text-light);
-            padding: 14px 28px;
+            padding: 16px 32px;
             border-radius: 16px;
             text-decoration: none;
-            font-size: 0.95em;
+            font-size: 1em;
             transition: all 0.2s ease-out;
             text-align: center;
             justify-content: center;
@@ -1850,7 +1850,6 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             width: 100%;
-            max-width: 400px;
         }
 
         .big-scan-button i {
@@ -2955,9 +2954,11 @@
             /* Smoother transition */
             user-select: none;
             /* Standard property */
-            /* Roundness 50 makes corners soft, Width 90 saves space */
-            font-variation-settings: "ROND" 50, "wdth" 90, "wght" 500;
+            /* Roundness 100 for rounder look, Weight 700 for bolder */
+            font-family: 'Google Sans Flex', sans-serif;
+            font-variation-settings: "ROND" 100, "wdth" 95, "wght" 500;
         }
+
 
         .time-tag:hover {
             border: 1px solid var(--primary-color);
@@ -4937,6 +4938,28 @@
             #admin-views-container {
                 grid-template-columns: 1fr !important;
             }
+
+            /* Smaller action-chip buttons on mobile */
+            .action-chip,
+            .action-chip.has-items {
+                padding: 8px 12px;
+                font-size: 0.85em;
+                min-width: auto;
+            }
+
+            /* Fix table horizontal scroll - ensure last column fills remaining space */
+            .logs-table,
+            .database-table {
+                min-width: auto;
+            }
+
+            .logs-table th:last-child,
+            .logs-table td:last-child,
+            .database-table th:last-child,
+            .database-table td:last-child {
+                padding-right: 20px;
+            }
+
 
             .settings-controls-bar {
                 flex-direction: row;
