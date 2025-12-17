@@ -619,6 +619,18 @@
             overflow-y: auto;
         }
 
+        /* Empty table containers should collapse */
+        .collapsible-module .table-container:has(tbody:empty) {
+            display: none;
+        }
+
+        /* Also hide the table if tbody has no content */
+        .table-container:has(tbody:empty),
+        .table-container:has(table:empty) {
+            display: none;
+        }
+
+
         .floating-history-btn {
             float: right;
             margin-bottom: 10px;
@@ -1809,6 +1821,9 @@
             justify-content: center;
             margin-top: 15px;
             margin-bottom: 25px;
+            width: 100%;
+            padding: 0 15px;
+            box-sizing: border-box;
         }
 
         #scanner-module {
@@ -1821,7 +1836,7 @@
             background-color: var(--primary-color);
             color: var(--text-light);
             padding: 14px 28px;
-            border-radius: 50px;
+            border-radius: 16px;
             text-decoration: none;
             font-size: 0.95em;
             transition: all 0.2s ease-out;
@@ -1834,6 +1849,8 @@
             user-select: none;
             font-weight: 600;
             letter-spacing: 0.02em;
+            width: 100%;
+            max-width: 400px;
         }
 
         .big-scan-button i {
@@ -2764,11 +2781,16 @@
         .logs-table td,
         .database-table td {
             padding: 14px 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             vertical-align: middle;
             line-height: 1.5;
             transition: background-color 0.15s ease-out;
             font-variation-settings: "wdth" 95, "GRAD" 0;
+        }
+
+        .dark-mode .logs-table td,
+        .dark-mode .database-table td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         /* Last row - remove bottom border and add radius */
@@ -2901,16 +2923,16 @@
         }
 
         .times-cell {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 2px;
-            align-items: center;
-            /* Aligns items within a single line */
-            align-content: center;
-            /* Aligns the whole block of lines if they wrap */
-            height: 100%;
-            /* Crucial for align-content to work */
+            white-space: nowrap;
         }
+
+        /* Inner content wrapper for times-cell */
+        .times-cell .pills-wrapper,
+        .times-cell .time-tag {
+            display: inline-flex;
+            align-items: center;
+        }
+
 
 
         .time-tag {
@@ -2954,20 +2976,15 @@
         .logs-table .actions-cell,
         .database-table .actions-cell {
             white-space: nowrap;
-            display: flex;
-            /* Turn the cell into a flex container */
-            justify-content: flex-end;
-            /* Align buttons to the right */
-            align-items: center;
-            /* Vertically center the buttons */
-            gap: 3px;
-            border-bottom: none !important;
+            text-align: right;
         }
 
-        /* Fix for times-cell and actions-cell in admin request tables */
-        .times-cell,
-        .actions-cell {
-            border-bottom: none !important;
+        /* Inner wrapper for flex layout in actions cell */
+        .actions-cell-content {
+            display: inline-flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 3px;
         }
 
         /* Prevent course/category text from wrapping */
@@ -3276,13 +3293,12 @@
 
         /* Dialog styles */
 
-        /* Fix for dialog scroll issue - prevents browser from scrolling when focusing inputs */
+        /* When a dialog is open, prevent body scroll */
         body.dialog-open {
             overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
         }
+
+
 
         .dialog-backdrop {
             position: fixed;

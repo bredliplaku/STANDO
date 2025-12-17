@@ -98,19 +98,55 @@ function checkLoadingCompletion() {
 }
 
 // --- Dialog Scroll Fix Helpers ---
-let dialogScrollY = 0;
+let dialogOpenCount = 0; // Track nested dialogs
+
+// Detect if device supports touch (for virtual keyboard handling)
+function isTouchDevice() {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
 
 function openDialogMode() {
-    dialogScrollY = window.scrollY;
-    document.body.classList.add('dialog-open');
-    document.body.style.top = `-${dialogScrollY}px`;
+    dialogOpenCount++;
+    if (dialogOpenCount === 1) {
+        document.body.classList.add('dialog-open');
+        // Reset burn-in transform to prevent dialog offset
+        document.body.style.transform = '';
+    }
 }
 
+
 function closeDialogMode() {
-    document.body.classList.remove('dialog-open');
-    document.body.style.top = '';
-    window.scrollTo(0, dialogScrollY);
+    dialogOpenCount = Math.max(0, dialogOpenCount - 1);
+    if (dialogOpenCount === 0) {
+        document.body.classList.remove('dialog-open');
+    }
 }
+
+// Emergency reset function - call this if scroll gets stuck
+function resetDialogMode() {
+    dialogOpenCount = 0;
+    document.body.classList.remove('dialog-open');
+}
+
+// Prevent auto-scroll on focus for non-touch devices
+// Touch devices need scroll for virtual keyboard visibility
+document.addEventListener('focusin', function (e) {
+    // Only prevent scroll on non-touch devices when dialog is open
+    if (!isTouchDevice() && dialogOpenCount > 0) {
+        const target = e.target;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+            // Check if the element is inside a dialog
+            if (target.closest('.dialog')) {
+                // Prevent the browser's default scroll-into-view behavior
+                e.preventDefault();
+                // Focus without scrolling
+                target.focus({ preventScroll: true });
+            }
+        }
+    }
+}, true); // Use capture phase to intercept early
+
+
 
 /**
 * Helper to get/create the persistent Device ID
@@ -3703,11 +3739,16 @@ function init() {
 
         // AMOLED Burn-in Prevention: Subtle pixel shifting every 2 minutes
         // Shifts content by ±2 pixels - imperceptible to users but prevents static burn-in
+        // Note: Paused when dialogs are open to prevent breaking position:fixed elements
         setInterval(() => {
-            const shiftX = Math.floor(Math.random() * 5) - 2; // -2 to +2 pixels
-            const shiftY = Math.floor(Math.random() * 5) - 2;
-            document.body.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+            // Only apply shift when no dialogs are open
+            if (dialogOpenCount === 0) {
+                const shiftX = Math.floor(Math.random() * 5) - 2; // -2 to +2 pixels
+                const shiftY = Math.floor(Math.random() * 5) - 2;
+                document.body.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+            }
         }, 120000); // Every 2 minutes
+
     }
 }
 
