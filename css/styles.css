@@ -440,7 +440,7 @@
             color: #e65100;
 
             border: 1px solid #ffb74d;
-            padding: 12px 20px;
+            padding: 8px 16px;
             border-radius: 12px;
 
             margin-bottom: 10px;
@@ -1667,7 +1667,7 @@
             font-weight: bold;
         }
 
-        /* .course-button:first-child {
+        .course-button:first-child {
             border-top-left-radius: 18px;
             border-bottom-left-radius: 18px;
         }
@@ -1675,7 +1675,7 @@
         .course-button:last-child {
             border-top-right-radius: 18px;
             border-bottom-right-radius: 18px;
-        } */
+        }
 
         .course-button:hover {
             transform: none;
@@ -1835,10 +1835,10 @@
             gap: 10px;
             background-color: var(--primary-color);
             color: var(--text-light);
-            padding: 16px 32px;
+            padding: 26px 32px;
             border-radius: 16px;
             text-decoration: none;
-            font-size: 1em;
+            font-size: 1.1em;
             transition: all 0.2s ease-out;
             text-align: center;
             justify-content: center;
@@ -1853,7 +1853,7 @@
         }
 
         .big-scan-button i {
-            font-size: 1.1em;
+            font-size: 1.5em;
         }
 
         /* Pushed-down effect when ANY state is clicked */
@@ -2384,6 +2384,11 @@
         /* This shows it ONLY for signed-in non-admins */
         body:not(.is-admin) #user-container #request-permission-btn {
             display: inline-flex !important;
+            /* Shown only for non-admins */
+            align-items: center;
+            gap: 8px;
+            padding-left: 14px;
+            padding-right: 14px;
         }
 
         body:not(.is-admin) #session-controls {
@@ -2608,7 +2613,6 @@
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            /* Removed border-radius and shadow to avoid box-in-box effect with module */
         }
 
         .logs-table,
@@ -3132,8 +3136,7 @@
         .actions-cell .btn-icon i,
         .logs-table .day-separator .btn-icon i,
         .delete-time-btn.btn-icon i,
-        #sync-btn.btn-icon i,
-        #logout-btn.btn-icon i {
+        #sync-btn.btn-icon i {
             font-size: 0.85em;
             /* Slightly reduce the icon size */
         }
@@ -3772,7 +3775,7 @@
             text-align: center;
             justify-content: center;
             white-space: nowrap;
-            padding: 10px 5px;
+            padding: 12px 5px;
             border-radius: 6px;
         }
 
@@ -3789,7 +3792,7 @@
             flex: 0 0 40px !important;
             /* Fixed width (Square-ish) */
             width: 40px !important;
-            padding: 0 !important;
+            padding: 12px 5px;
             justify-content: center;
             text-align: center;
             border-radius: 6px;
@@ -4909,6 +4912,22 @@
                 margin-bottom: 35px;
             }
 
+            /* Full width table on mobile (Bleed edges) */
+            .collapsible-module {
+                overflow-x: clip;
+            }
+
+            .collapsible-module .table-container {
+                margin-left: -15px;
+                margin-right: -15px;
+                width: calc(100% + 30px);
+                border-radius: 0;
+                border-left: 0;
+                border-right: 0;
+            }
+
+
+
             #session-category-group,
             #session-group-container {
                 flex: none;
@@ -4920,9 +4939,9 @@
             }
 
             #session-controls .course-button {
-                padding-top: 6px;
+                padding-top: 4px;
                 /* Taller padding */
-                padding-bottom: 6px;
+                padding-bottom: 4px;
                 /* Taller padding */
                 min-height: 35px;
                 /* Enforce taller height */
@@ -4942,23 +4961,34 @@
             /* Smaller action-chip buttons on mobile */
             .action-chip,
             .action-chip.has-items {
-                padding: 8px 12px;
-                font-size: 0.85em;
+                padding: 6px 6px;
+                font-size: 0.8em;
                 min-width: auto;
             }
 
             /* Fix table horizontal scroll - ensure last column fills remaining space */
             .logs-table,
             .database-table {
-                min-width: auto;
+                min-width: 100%;
+                width: 100%;
+                table-layout: auto;
+            }
+
+            /* Make actions column stretch to fill remaining space */
+            .logs-table .actions-cell,
+            .database-table .actions-cell,
+            .logs-table th.actions-header,
+            .database-table th:last-child {
+                width: auto;
             }
 
             .logs-table th:last-child,
             .logs-table td:last-child,
             .database-table th:last-child,
             .database-table td:last-child {
-                padding-right: 20px;
+                padding-right: 16px;
             }
+
 
 
             .settings-controls-bar {

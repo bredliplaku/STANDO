@@ -9619,7 +9619,8 @@ function updateLogsList() {
                 const separatorRow = document.createElement('tr');
                 separatorRow.className = 'day-separator';
                 const separatorCell = document.createElement('td');
-                separatorCell.colSpan = 5; // Span across all columns
+                separatorCell.colSpan = 100; // Span across all columns (100 is effectively "all")
+
 
                 const flexWrapper = document.createElement('div');
                 flexWrapper.className = 'day-separator-content';
