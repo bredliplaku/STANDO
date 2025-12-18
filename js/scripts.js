@@ -251,7 +251,7 @@ function showStaffEditorDialog(staffData = null) {
     const emailVal = isEdit ? staffData.email : '';
     const uidVal = isEdit ? staffData.uid : '';
 
-    // FIX: Default to 'Lecturer' if adding new
+    // Default to 'Lecturer' if adding new
     const roleVal = isEdit ? staffData.role : 'Lecturer';
 
     dialog.innerHTML = `
@@ -5234,7 +5234,7 @@ function renderAbsencesTable(requests) {
         row.dataset.studentName = req.name;
         row.dataset.studentEmail = req.email;
         row.dataset.course = req.course;
-        row.dataset.session = req.session || ''; // <--- NEW
+        row.dataset.session = req.session || '';
         row.dataset.absenceDate = req.absenceDate;
         row.dataset.hours = req.hours;
         row.dataset.reasonType = req.reasonType;
@@ -5424,8 +5424,8 @@ function showRequestPermissionDialog() {
     };
 
     const today = new Date();
-    const minDateStr = getLocalDateString(addBusinessDays(today, -10));
-    const maxDateStr = getLocalDateString(addBusinessDays(today, 10));
+    const minDateStr = getLocalDateString(addBusinessDays(today, -2));
+    const maxDateStr = getLocalDateString(addBusinessDays(today, 7));
     const todayStr = getLocalDateString(today);
 
     openDialogMode();
@@ -5610,7 +5610,7 @@ function showRequestPermissionDialog() {
             // a op (b × c op d)
             { display: `${a} ${op1} (${b} × ${c} ${op2} ${d})`, js: `${a} ${toJs(op1)} (${b} * ${c} ${toJs(op2)} ${d})` },
 
-            // --- NEW TEMPLATES ---
+            // TEMPLATES
             // a + b + c + d
             { display: `${a} + ${b} + ${c} + ${d}`, js: `${a} + ${b} + ${c} + ${d}` },
             // (a + b) × (c - d)
@@ -6393,7 +6393,7 @@ function handleAuthClick(e) {
 }
 
 /**
- * Get course metadata for the specified course - FIXED version with better logging
+ * Get course metadata for the specified course
  */
 function getCourseMetadata(course) {
     if (!course) {
@@ -6727,7 +6727,7 @@ function updateAuthUI() {
         sessionControls.style.setProperty('display', 'none', 'important');
     }
 
-    // --- Sort Select Logic (FIXED) ---
+    // --- Sort Select Logic ---
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
         const options = Array.from(sortSelect.options);
@@ -6826,7 +6826,7 @@ function updateAuthUI() {
         const hasActiveData = isSignedIn || (Object.keys(courseData).length > 0 && currentCourse);
         if (scanHistoryModule) scanHistoryModule.style.display = hasActiveData ? 'block' : 'none';
 
-        // --- UID Column Visibility (FIXED) ---
+        // --- UID Column Visibility ---
         document.querySelectorAll('.uid-column').forEach(col => {
             col.style.display = isAdmin ? 'table-cell' : 'none';
         });
@@ -7175,7 +7175,7 @@ async function loadAllCourseLogsForCourseAdmin() {
 
     const fetchPromises = availableCourses.map(async (course) => {
         try {
-            // Call the NEW Web App endpoint
+            // Call the Web App endpoint
             const serverLogs = await callWebApp('getCourseLogs_Admin', { courseName: course }, 'POST');
 
             if (serverLogs && serverLogs.length > 0) {
@@ -7586,7 +7586,7 @@ function mergeLogs(serverLogs, localLogs, localTombstones, serverTombstonesMap) 
         if (!serverLog) {
             // Log exists locally but not on server.
             // Since we already checked isDead(), we know it wasn't deleted on the server.
-            // Therefore, it must be a NEW offline creation. Keep it.
+            // Therefore, it must be a offline creation. Keep it.
             combinedMap.set(localLog.id, localLog);
         } else {
             // Log exists in both. Standard conflict resolution.
@@ -7901,7 +7901,7 @@ function showAddEntryDialog() {
 
                 // Now, sync the *entire* database in the background.
                 if (isOnline) {
-                    // This now calls the NEW fast function
+                    // This now calls the fast function
                     syncDatabaseToSheet().catch(err => {
                         console.error("Background sync failed:", err);
                         showNotification('error', 'Sync Failed', 'Changes saved locally but failed to sync.');
@@ -8957,7 +8957,7 @@ async function performBulkAction(action) {
     let confirmMsg = "", confirmTitle = "";
     let extraHtml = "";
 
-    // CHANGED: Enable inherit option for BOTH add1h AND sub1h
+    // Enable inherit option for BOTH add1h AND sub1h
     const includeInherit = (action === 'add1h' || action === 'sub1h');
     const sessionHtml = renderSessionSelectorHTML('bulk', includeInherit);
 
@@ -9053,7 +9053,7 @@ async function performBulkAction(action) {
                         const siblings = allLogs.filter(l => l.uid === originalLog.uid && new Date(l.timestamp).getDate() === d.getDate() && new Date(l.timestamp).getMonth() === d.getMonth());
                         let logToDelete = null;
 
-                        // CHANGED: Logic to handle INHERIT vs Specific Session
+                        // Logic to handle INHERIT vs Specific Session
                         if (targetSession === 'INHERIT') {
                             // Just find the absolute latest log, regardless of session
                             if (siblings.length > 0) {
