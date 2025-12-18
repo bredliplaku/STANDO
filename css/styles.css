@@ -3001,8 +3001,8 @@
 
         /* Fixes for Absence Request Dialog */
         #request-hours-group {
-            gap: 4px 2px !important;
-            /* Tighter spacing for many buttons */
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 6px !important;
         }
 
         #request-hours-group .toggle-button {
@@ -4918,15 +4918,11 @@
             }
 
             .collapsible-module .table-container {
-                margin-left: -15px;
-                margin-right: -15px;
-                width: calc(100% + 30px);
+                width: 100%;
                 border-radius: 0;
                 border-left: 0;
                 border-right: 0;
             }
-
-
 
             #session-category-group,
             #session-group-container {
@@ -4988,8 +4984,6 @@
             .database-table td:last-child {
                 padding-right: 16px;
             }
-
-
 
             .settings-controls-bar {
                 flex-direction: row;

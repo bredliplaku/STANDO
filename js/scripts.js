@@ -5538,7 +5538,14 @@ function showRequestPermissionDialog() {
     <div class="form-group" style="align-items:flex-start;">
         <label class="dialog-label-fixed" style="margin-top:10px;"><i class="fa-solid fa-calculator"></i> Solve</label>
         <div class="form-group-control">
-            <div id="captcha-question" style="font-size:1.1em; font-weight:600; margin-bottom:10px; font-family:monospace; background:var(--card-background); color:var(--text-color); padding:10px 15px; border-radius:8px; text-align:center; border:1px solid var(--border-color, #ddd);"></div>
+            <div id="captcha-question" style="font-size:1.2em; font-weight:600; margin-bottom:10px; font-family:'Google Sans Code', monospace; background:var(--card-background); color:var(--text-color); padding:10px 15px; border-radius:8px; text-align:center; border:1px solid var(--border-color, #ddd);-webkit-user-select: none;
+            /* Safari */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* IE10+/Edge */
+            user-select: none;
+            /* Standard */"></div>
             <div id="captcha-choices" class="course-buttons-container" style="margin-bottom:0; gap:8px; flex-wrap:nowrap;"></div>
         </div>
     </div>
@@ -5602,6 +5609,44 @@ function showRequestPermissionDialog() {
             { display: `(${a} ${op1} ${b} ${op2} ${c}) × ${d}`, js: `(${a} ${toJs(op1)} ${b} ${toJs(op2)} ${c}) * ${d}` },
             // a op (b × c op d)
             { display: `${a} ${op1} (${b} × ${c} ${op2} ${d})`, js: `${a} ${toJs(op1)} (${b} * ${c} ${toJs(op2)} ${d})` },
+
+            // --- NEW TEMPLATES ---
+            // a + b + c + d
+            { display: `${a} + ${b} + ${c} + ${d}`, js: `${a} + ${b} + ${c} + ${d}` },
+            // (a + b) × (c - d)
+            { display: `(${a} + ${b}) × (${c} − ${d})`, js: `(${a} + ${b}) * (${c} - ${d})` },
+            // a × b − c × d
+            { display: `${a} × ${b} − ${c} × ${d}`, js: `${a} * ${b} - ${c} * ${d}` },
+            // (a × b) + (c × d)
+            { display: `(${a} × ${b}) + (${c} × ${d})`, js: `(${a} * ${b}) + (${c} * ${d})` },
+            // a + (b × c) - d
+            { display: `${a} + (${b} × ${c}) − ${d}`, js: `${a} + (${b} * ${c}) - ${d}` },
+            // (a - b) × (c + d)
+            { display: `(${a} − ${b}) × (${c} + ${d})`, js: `(${a} - ${b}) * (${c} + ${d})` },
+            // a × b + c - d
+            { display: `${a} × ${b} + ${c} − ${d}`, js: `${a} * ${b} + ${c} - ${d}` },
+            // a + b × c + d
+            { display: `${a} + ${b} × ${c} + ${d}`, js: `${a} + ${b} * ${c} + ${d}` },
+            // (a + b + c) × d
+            { display: `(${a} + ${b} + ${c}) × ${d}`, js: `(${a} + ${b} + ${c}) * ${d}` },
+            // a × (b - c) + d
+            { display: `${a} × (${b} − ${c}) + ${d}`, js: `${a} * (${b} - ${c}) + ${d}` },
+            // a - b + c - d
+            { display: `${a} − ${b} + ${c} − ${d}`, js: `${a} - ${b} + ${c} - ${d}` },
+            // a × (b + c + d)
+            { display: `${a} × (${b} + ${c} + ${d})`, js: `${a} * (${b} + ${c} + ${d})` },
+            // (a - b) - (c - d)
+            { display: `(${a} − ${b}) − (${c} − ${d})`, js: `(${a} - ${b}) - (${c} - ${d})` },
+            // a × b × c - d
+            { display: `${a} × ${b} × ${c} − ${d}`, js: `${a} * ${b} * ${c} - ${d}` },
+            // a + b - (c × d)
+            { display: `${a} + ${b} − (${c} × ${d})`, js: `${a} + ${b} - (${c} * ${d})` },
+            // (a × b) - (c + d)
+            { display: `(${a} × ${b}) − (${c} + ${d})`, js: `(${a} * ${b}) - (${c} + ${d})` },
+            // a × b × (c - d)
+            { display: `${a} × ${b} × (${c} − ${d})`, js: `${a} * ${b} * (${c} - ${d})` },
+            // (a + b) × c - d
+            { display: `(${a} + ${b}) × ${c} − ${d}`, js: `(${a} + ${b}) * ${c} - ${d}` },
         ];
 
         const template = templates[Math.floor(Math.random() * templates.length)];
@@ -5661,7 +5706,7 @@ function showRequestPermissionDialog() {
             // Generate new captcha after wrong answer
             setTimeout(() => {
                 generateCaptcha();
-            }, 800);
+            }, 1500);
         }
     });
 
