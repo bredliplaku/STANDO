@@ -4689,26 +4689,30 @@
             width: 100%;
             height: 100vh;
             background-color: rgba(255, 255, 255, 0.95);
-            /* Slightly less opacity for performance */
             z-index: 10001;
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Center vertically */
             flex-direction: column;
             text-align: center;
             opacity: 0;
             pointer-events: none;
-            /* Let clicks pass through when hidden */
             transition: opacity 0.15s ease-out;
-            /* Much faster transition */
             will-change: opacity;
-            /* Hardware acceleration hint */
+            /* Allow scrolling underneath even when visible */
+            touch-action: auto;
         }
 
         #scan-announcement-overlay.visible {
             opacity: 1;
+            /* Only capture clicks on the content, not the whole overlay */
+            pointer-events: none;
+        }
+
+        /* Make only the content area clickable to dismiss */
+        #scan-announcement-overlay.visible .scan-announcement-content {
             pointer-events: auto;
+            cursor: pointer;
         }
 
         .scan-announcement-content {

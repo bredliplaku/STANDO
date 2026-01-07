@@ -10438,7 +10438,7 @@ async function handleNfcReading({ serialNumber }) {
         const nameEl = document.getElementById('scan-announcement-name');
         if (overlay && nameEl) {
             nameEl.textContent = name;
-            openDialogMode();
+            // Don't use openDialogMode/closeDialogMode - the overlay should NOT block scrolling
             overlay.style.display = 'flex';
             void overlay.offsetWidth;
             overlay.classList.add('visible');
@@ -10447,8 +10447,6 @@ async function handleNfcReading({ serialNumber }) {
             const hideOverlay = () => {
                 if (window.overlayTimeout) clearTimeout(window.overlayTimeout);
                 overlay.classList.remove('visible');
-                // Always close dialog mode immediately to prevent scroll lock
-                closeDialogMode();
                 window.overlayHideTimeout = setTimeout(() => {
                     overlay.style.display = 'none';
                 }, 150);
