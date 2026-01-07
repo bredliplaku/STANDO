@@ -10443,13 +10443,14 @@ async function handleNfcReading({ serialNumber }) {
             void overlay.offsetWidth;
             overlay.classList.add('visible');
             if (window.overlayTimeout) clearTimeout(window.overlayTimeout);
+            if (window.overlayHideTimeout) clearTimeout(window.overlayHideTimeout);
             const hideOverlay = () => {
+                if (window.overlayTimeout) clearTimeout(window.overlayTimeout);
                 overlay.classList.remove('visible');
-                window.overlayTimeout = setTimeout(() => {
-                    if (!overlay.classList.contains('visible')) {
-                        overlay.style.display = 'none';
-                        closeDialogMode();
-                    }
+                // Always close dialog mode immediately to prevent scroll lock
+                closeDialogMode();
+                window.overlayHideTimeout = setTimeout(() => {
+                    overlay.style.display = 'none';
                 }, 150);
             };
             window.overlayTimeout = setTimeout(hideOverlay, 2500);
