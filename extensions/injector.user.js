@@ -3,7 +3,7 @@
 // @namespace    https://swimmingbrain.dev/
 // @version      2.0
 // @description  Automatically import attendance data from clipboard on EIS page load.
-// @author       swimmingbrainv
+// @author       swimmingbrain
 // @match        https://eis.epoka.edu.al/courseattendance/*/newcl
 // @updateURL    https://github.com/bredliplaku/STANDO/raw/refs/heads/main/extensions/injector.user.js
 // @downloadURL  https://github.com/bredliplaku/STANDO/raw/refs/heads/main/extensions/injector.user.js
