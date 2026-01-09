@@ -4001,11 +4001,44 @@
         .dark-mode .dialog .form-control {
             background-color: #333;
             border-color: transparent;
+            color: #f0f0f0;
         }
 
         .dark-mode .dialog .form-control:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(92, 107, 192, 0.3);
+        }
+
+        .dark-mode .dialog .form-group label {
+            color: var(--primary-light);
+        }
+
+        .dark-mode .dialog-label-fixed {
+            color: var(--primary-light);
+        }
+
+        .dark-mode .dialog textarea,
+        .dark-mode .dialog input[type="text"],
+        .dark-mode .dialog input[type="date"],
+        .dark-mode .dialog input[type="time"],
+        .dark-mode .dialog input[type="number"],
+        .dark-mode .dialog select {
+            background-color: #333;
+            color: #f0f0f0;
+            border-color: #555;
+        }
+
+        .dark-mode .dialog textarea::placeholder,
+        .dark-mode .dialog input::placeholder {
+            color: #888;
+        }
+
+        .dark-mode .dialog hr {
+            border-color: #444;
+        }
+
+        .dark-mode .dialog p {
+            color: #e0e0e0;
         }
 
         .unknown-row {

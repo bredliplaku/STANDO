@@ -6092,7 +6092,7 @@ function showApproveAbsenceDialog(data) {
 
     confirmBtn.addEventListener('click', () => {
         const approvedHours = Array.from(hoursGroup.querySelectorAll('.toggle-button.active'))
-            .map(btn => btn.dataset.value.split('–')[0].split('-')[0]); // Extract only start time (before en-dash or hyphen)
+            .map(btn => btn.dataset.value);
 
 
         const message = messageArea.value; // Get the message (it can be empty)
