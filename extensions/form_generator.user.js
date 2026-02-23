@@ -28,12 +28,7 @@
         #attendance-btn {
             background-color: #3949ab;
             color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            border: none;
-            margin-right: 10px;
             cursor: pointer;
-            font-weight: bold;
         }
 
         #attendance-btn:hover {
@@ -133,21 +128,6 @@
             padding: 5px 10px;
             cursor: pointer;
             margin-top: 5px;
-        }
-
-        .attendance-btn {
-            background-color: #3949ab;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            margin-right: 10px;
-        }
-
-        .attendance-btn:hover {
-            background-color: #1a237e;
         }
 
         #close-sheet-btn {
@@ -527,6 +507,7 @@
 
         const button = document.createElement('button');
         button.id = 'attendance-btn';
+        button.className = 'btn btn-info';
         button.innerHTML = '<i class="fa fa-table"></i> Generate Attendance Sheet';
         button.onclick = generateAttendanceSheet;
 

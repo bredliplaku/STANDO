@@ -291,7 +291,6 @@
         const importButton = document.createElement('button');
         importButton.id = 'eis-import-btn';
         importButton.className = 'btn btn-info';
-        importButton.style.marginRight = '10px';
         importButton.innerHTML = '<i class="fas fa-file-import"></i> Import';
         importButton.onclick = importAttendance;
 
@@ -333,7 +332,6 @@
     function applyGlobalStyles() {
         const style = document.createElement('style');
         style.textContent = `
-            .eis-paste-btn, #eis-import-btn { border-radius: 20px !important; }
             .eis-highlighted-row { animation: highlight-flash 1.5s ease-in-out; }
             @keyframes highlight-flash { 0% { background-color: transparent; } 50% { background-color: rgba(57, 73, 171, 0.2); } 100% { background-color: transparent; } }
             .eis-no-uid-row { background-color: #ffebee !important; }
